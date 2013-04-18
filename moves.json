@@ -1,0 +1,7 @@
+[
+ {"player":0, "action":{"name":"take_gold"}}
+,{"player":1, "action":{"name":"draw_cards"}}
+,{"player":0, "action":{"name":"take_gold"}}
+,{"player":1, "action":{"name":"draw_cards"}}
+
+]

@@ -1,7 +1,15 @@
-[
- {"player":0, "action":{"name":"take_gold"}}
-,{"player":1, "action":{"name":"draw_cards"}}
-,{"player":0, "action":{"name":"take_gold"}}
-,{"player":1, "action":{"name":"draw_cards"}}
+{	"valid_moves":
+		[{"player":0, "action":{"name":"pick_character", "target":2}}
+		,{"player":1, "action":{"name":"pick_character", "target":4}}
+		,{"player":0, "action":{"name":"take_gold"}}
+		,{"player":1, "action":{"name":"draw_cards"}}
+		,{"player":0, "action":{"name":"take_gold"}}
+		,{"player":1, "action":{"name":"draw_cards"}}
 
-]
+		],
+	"wrong_turn":
+		[
+		 {"player":0,"action":{"name":"take_gold"}}
+		,{"player":0,"action":{"name":"take_gold"}}
+		]
+}

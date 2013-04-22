@@ -22,8 +22,27 @@ class TestAllTheThings(unittest.TestCase):
         x = json.loads("[1,2,3]")
         self.assertTrue(len(x) == 3)
 
-    def test_using_json_from_file(self):
-        players = [fake_player(1), fake_player(2)]
+    def test_valid_moves(self):
+        self.do_test_using_json_from_file("moves.json","valid_moves")
+
+
+    def test_create_round(self):
+        random_generator = random.Random(42)
+        players = [fake_player("Peter"),fake_player("Manan")]
+        [p.set_position(i) for i,p in enumerate(players)]
+        r = Round(players, random_generator)
+
+        self.assertEqual(len(r.face_up_chars), 3)
+        self.assertEqual(len(r.face_down_chars), 2)
+        self.assertEqual(len(r.character_draw_pile),3)
+
+    @unittest.skip("not right now")
+    def test_wrong_turn(self):
+        with self.assertRaises(NotYourTurnError):
+            self.do_test_using_json_from_file("moves.json","wrong_turn")
+
+    def do_test_using_json_from_file(self, file, move_set):
+        players = [fake_player("peter"), fake_player("manan")]
 
         r = random.Random(42)
         game = GameState()
@@ -31,18 +50,20 @@ class TestAllTheThings(unittest.TestCase):
 
         ref = Referee(r, game)
 
-        with open("moves.json") as f:
-            moves = json.loads(f.read())
+        with open(file) as f:
+            move_sets = json.loads(f.read())
 
+        moves = move_sets[move_set]
         for move in moves:
             player_index = move['player']
             player = players[player_index]
             action = move['action']
 
             ref.perform_action(player, action)
-
+    def setUp(self):
+        logging.info("\n--------- running %s -------------" % self.id())
 def fake_player(n):
-    return Player("player " + str(n))
+    return Player(str(n))
         
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

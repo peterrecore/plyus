@@ -11,6 +11,9 @@
 		,{"player":0, "action":{"name":"take_gold"}}
 		,{"player":0, "action":{"name":"build_district", "target":7}}
 		,{"player":0, "action":{"name":"finish"}}
+		,{"player":1, "action":{"name":"take_gold"}}
+		,{"player":1, "action":{"name":"build_district", "target":6}}
+		,{"player":1, "action":{"name":"finish"}}
 		],
 	"wrong_turn":
 		[

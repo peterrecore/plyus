@@ -173,7 +173,7 @@ class Referee:
         # return the new state of the game
 
     def handle_finish(self, action, cur_player):
-        self.validate_phase_and_step(Phase.PLAY_TURNS, Step.BUILD_DISTRICT)
+        self.validate_phase_and_step(Phase.PLAY_TURNS, Step.BUILD_DISTRICT, Step.FINISH)
 
         round = self.game_state.round
         cur_char = round.plyr_to_char_map[cur_player.position]
@@ -288,12 +288,11 @@ class Referee:
             self.game_state.advance_cur_player_index()
 
 
-            # START HERE:  the step argument needs to be a tuple, so we can have handle_finish allow both FINISH and BUILD_DISTRICT.
-    def validate_phase_and_step(self, phase, step):
+    def validate_phase_and_step(self, phase, *steps):
         if self.game_state.phase is not phase:
             raise IllegalActionError
 
-        if self.game_state.step is not step:
+        if self.game_state.step not in steps:
             raise IllegalActionError
 
     def validate_step(self, *steps):

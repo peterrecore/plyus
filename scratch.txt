@@ -1,3 +1,21 @@
 look up later:
 	random docs do not mention the constructor
-	
+	why can I assign to false?
+	how many cards do players start with?
+
+Thoughts
+	- Referee knows about user actions.  GameState does not.
+	- Referee doesn't want to know much about GameState internals.
+		  It wants to call something like "next_characters_turn"
+		  instead of setting properites on gamestate fields directly.
+
+	- Conundrum - do I used indexes or id's to refer to items in general.
+
+
+    - Would be nice if Referee didn't have any state to be saved between actions.s
+
+    - should Referee and Gamestate be combined?
+
+Refactor:
+	- canonicalize district/building and person/character
+	- PEP8 adherence - get rid of camelcase

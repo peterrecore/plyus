@@ -7,14 +7,14 @@ from plyus import *
 
 class TestAllTheThings(unittest.TestCase):
 
-    def testDraw(self):
+    def test_draw(self):
         given = [1,2,3,4,5]
         result = draw_n(given,2)
         self.assertTrue((len(result) == 2))
         self.assertListEqual(result,[1,2])
         self.assertListEqual(given,[3,4,5])
 
-    def testBuilding(self):
+    def test_building(self):
         foo = Building(1,"blue",3,"NASA")
         self.assertTrue(foo.name == "NASA")
 

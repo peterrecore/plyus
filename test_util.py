@@ -24,6 +24,14 @@ class TestAllTheThings(unittest.TestCase):
         x = json.loads("[1,2,3]")
         self.assertTrue(len(x) == 3)
 
+    def test_object_to_json(self):
+        class Foo():
+            pass
+        f = Foo()
+        f.prop1 = "peter"
+        f.prop2 = "purple"
+        s = json.dumps(f, default=convert_to_builtin_type)
+        self.assertEqual(s, '{"__module__": "__main__", "__class__": "Foo", "prop2": "purple", "prop1": "peter"}') 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

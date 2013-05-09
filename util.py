@@ -1,4 +1,5 @@
 import logging
+import json
 
 def draw_n(some_list, n):
     #TODO: check to make sure there are enough elements to return
@@ -23,3 +24,12 @@ def lowest_higher_than(list, x):
 
 def ids(xs):
 	return [x.id for x in xs]
+
+def convert_to_builtin_type(obj):
+    # Convert objects to a dictionary of their representation
+    # based on code from http://pymotw.com
+    d = { '__class__':obj.__class__.__name__, 
+          '__module__':obj.__module__,
+          }
+    d.update(obj.__dict__)
+    return d

@@ -83,9 +83,9 @@ class Phase:
 class Step:
     COINS_OR_DISTRICT = 'COINS_OR_DISTRICT'
     KEEP_CARD = 'KEEP_CARD'
-#    MURDER = 'MURDER'
-#    STEAL = 'STEAL'
-#    RAZE = 'RAZE'
+    MURDER = 'MURDER'
+    STEAL = 'STEAL'
+    RAZE = 'RAZE'
     BUILD_DISTRICT = 'BUILD_DISTRICT' 
     NONE = 'NO_STEP' 
     FINISH = 'FINISH'
@@ -98,10 +98,16 @@ class Round:
         self.plyr_to_char_map = {} #maps 
         self.char_to_plyr_map = {}
         self.has_used_power = {}
+        self.has_taken_bonus = {}
+        self.num_seven_builds_left = 3
+        self.dead_char = None
+        self.mugged_char = None
+
 
         for p in players:
             self.plyr_to_char_map[p.position] = False
             self.has_used_power[p.position] = False
+            self.has_taken_bonus[p.position] = False
 
         face_up_num, face_down_num = self.char_setup_for_n_players(len(players))
         self.character_draw_pile = [1,2,3,4,5,6,7,8]
@@ -141,49 +147,15 @@ class Referee:
             ,'keep_card':self.handle_keep_card
             ,'finish':self.handle_finish
             ,'use_power':self.handle_use_power
+            ,'take_bonus':self.handle_take_bonus
         }
         self.power_handlers = {
              1:self.handle_power_1
             ,2:self.handle_power_2
             ,3:self.handle_power_3
-            ,4:self.handle_power_4
-            ,5:self.handle_power_5
-            ,6:self.handle_power_6
-            ,7:self.handle_power_7
             ,8:self.handle_power_8
         }
-    def check_for_victory(self, game_state):
-        #when soeone has built 8 things, game is over
-        if self.game_state.end_game:
-            rankings = []
-            for p in self.game_state.players:
 
-                basic_points = 0
-                bonus_points = 0
-                colors = {}
-                for d in p.districts_on_table:
-                    basic_points += d.points
-                    colors[d.color] = True
-
-                if len(colors.keys()) == 5:
-                    p.rainbow_bonus = True
-                    bonus_points += 3
-
-
-                if len(p.districts_on_table) >= 8:
-                    bonus_points += 2
-
-                if p.first_to_eight_districts:
-                    bonus_points += 2
-
-                p.points = basic_points + bonus_points
-                p.ranking = (p.points, p.gold, basic_points)
-            #TODO:  implement official tiebreaker                        
-            ranked_players = sorted(self.game_state.players, key=lambda p:p.ranking, reverse=True )
-            self.game_state.winner = ranked_players[0].name
-
-            return True
-        return False 
 
     #TODO: validate that move is a valid move object.  possibly 
     # make an actual Move class that ensures validity
@@ -244,14 +216,14 @@ class Referee:
         cur_char = round.plyr_to_char_map[cur_player.position]
         logging.info("cur_player is %s, cur_char=%s" % (cur_player,cur_char))
         next_char = lowest_higher_than(round.char_to_plyr_map.keys(), cur_char)  
+        if next_char == round.dead_char:
+            next_char = lowest_higher_than(round.char_to_plyr_map.keys(), cur_char+1)  
 
-        #TODO:  do we really need last_char_to_play_this_round?
-        logging.info("next_char is %s and last_char_to_play is %s" 
-            % (next_char, round.last_char_to_play_this_round))
+        logging.info("next_char is %s  " % next_char)
         # if everyone has played, start a new round
         if (next_char is None):
             #everyone_has_played: start next round
-            self.check_for_victory(self.game_state)
+            self.game_state.finish_round()
             self.game_state.start_new_round()
 
         else:
@@ -262,15 +234,39 @@ class Referee:
             self.cur_player_index = round.char_to_plyr_map[next_char]
             self.game_state.step = Step.COINS_OR_DISTRICT
 
+    #some things happen before a player "takes an action"
+    # which means after they draw cards or take gold
+    # we will consider this equivalent to the "start of the turn"
+    def pre_action_effects(self, cur_player):
+        rnd = self.game_state.round
+        if cur_player.character == rnd.mugged_char:
+           stolen = cur_player.gold 
+           cur_player.gold = 0
+           mugger = rnd.char_to_plyr_map[2]
+           rnd.players[mugger].gold += stolen
+           #TODO: announce gold was stolen
+
+    #some things happen after a player "takes an action"
+    # which means after they draw cards or take gold
+    def post_action_effects(self, cur_player):
+        if cur_player.character == 6:
+            cur_player.gold += 1
+            #TODO:  merchant getting a bonus gold needs to be an announced event
+        if cur_player.character == 7:
+            cards = draw_n(self.game_state.building_card_deck, 2)
+            cur_player.districts_in_hand.extend(cards)
+            #TODO: announce player getting bonus cards
 
     def handle_take_gold(self, action, cur_player):
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.COINS_OR_DISTRICT)
-
+        self.pre_action_effects(cur_player)
         cur_player.take_gold()
+        self.post_action_effects(cur_player)
         self.game_state.step = Step.BUILD_DISTRICT
 
     def handle_build_district(self, action, cur_player):
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.BUILD_DISTRICT)
+
 
         if 'target' not in action:
             logging.error("build action with no target")
@@ -298,12 +294,18 @@ class Referee:
             cur_player.districts_on_table.append(target)
             cur_player.gold = cur_player.gold - cost
 
-
-        self.game_state.step = Step.FINISH
+        #unless current char is 7, we only get one build so next step is finish
+        r = self.game_state.round
+        r.num_seven_builds_left -= 1
+        if (cur_player.character == 7 and r.num_seven_builds_left > 0):
+            self.game_state.step = Step.BUILD_DISTRICT
+        else:
+            self.game_state.step = Step.FINISH
 
     def handle_draw_cards(self, action, cur_player):
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.COINS_OR_DISTRICT)
 
+        self.pre_action_effects(cur_player)
         cur_player.take_cards(self.game_state.building_card_deck)
         self.game_state.step = Step.KEEP_CARD
         logging.info("possible cards are %s", cur_player.districts_buffer)
@@ -325,6 +327,7 @@ class Referee:
         cur_player.districts_in_hand.append(target)
         cur_player.districts_buffer.remove(target)
         self.game_state.building_card_deck.extend(cur_player.districts_buffer)
+        self.post_action_effects(cur_player)
         self.game_state.step = Step.BUILD_DISTRICT
 
     def handle_pick_character(self, action, cur_player):
@@ -349,7 +352,6 @@ class Referee:
             # to be current player.
             current_character = lowest_higher_than(round.plyr_to_char_map.values(),0)
             self.game_state.cur_player_index = round.char_to_plyr_map[current_character]
-            round.last_char_to_play_this_round = max(round.plyr_to_char_map.values())
             logging.info("Done Picking.  cur_char=%s, cur_plyr_pos=%s " 
                 % (current_character, self.game_state.cur_player_index))
             self.game_state.phase = Phase.PLAY_TURNS
@@ -360,34 +362,160 @@ class Referee:
             self.game_state.advance_cur_player_index()
 
 
-    def dispense_bonus_gold(self, color, cur_plyr):
+    def handle_take_bonus(self, action, cur_plyr):
+        self.validate_phase_and_step(Phase.PLAY_TURNS,
+                             Step.BUILD_DISTRICT,
+                             Step.FINISH,
+                             Step.COINS_OR_DISTRICT)
+        color_map = {4:"yellow", 5:"blue", 6:"green",8:"red"}
+
+        if cur_plyr.character not in color_map:
+            raise IllegalActionError("character %s doesn't get bonus gold" % cur_plyr.character)
+
+        if self.game_state.round.has_taken_bonus[cur_plyr.position]:
+            raise IllegalActionError("player has already taken bonus this round")
+
+        color = color_map[cur_plyr.character]
+
         num_color = sum(1 for d in cur_plyr.districts_on_table if d.color == color)
         cur_plyr.gold += num_color
-        logging("Player %s gained %s bonus gold" % (cur_plyr.name, num_color))
+        logging.info("Player %s gained %s bonus gold" % (cur_plyr.name, num_color))
+        self.game_state.round.has_taken_bonus[cur_plyr.position] = True
 
     def handle_power_1(self, action, cur_plyr):
-        pass
+        #TODO:  make a decorator that validates a target is present
+        if not 'target' in action:
+            raise IllegalActionError("No target specified")
+        target = action['target']
+        if target == 1:
+            raise IllegalActionError("You can't target yourself")
+
+        if target not in [2,3,4,5,6,7,8]:
+            raise IllegalActionError("Invalid target specified: %s" % target)
+
+        #TODO: if player targets a face up character, announce this as a bold move
+        self.game_state.round.dead_char = target
 
     def handle_power_2(self, action, cur_plyr):
-        pass
+        #TODO:  make a decorator that validates a target is present
+        if not 'target' in action:
+            raise IllegalActionError("No target specified")
+        target = action['target']
+
+        if target == 1:
+            raise IllegalActionError("You can't target #1, that wouldn't be fair!")
+
+        if target == 2:
+            raise IllegalActionError("You can't target yourself. That would be silly.")
+
+        if target not in [3,4,5,6,7,8]:
+            raise IllegalActionError("Invalid target specified: %s" % target)
+
+        #TODO: if player targets a face up character, announce this as a bold move
+        self.game_state.round.mugged_char = target
 
     def handle_power_3(self, action, cur_plyr):
+        if not 'target' in action:
+           raise IllegalActionError("No target specified")
+        target = action['target']
+        
+        if target == cur_plyr.position:
+           raise IllegalActionError("Can't target yourself.")        
+
+        if target not in range(self.game_state.num_players) and target != "deck":
+           raise IllegalActionError("Invalid target: %s" % target)        
+
+        hand = cur_plyr.districts_in_hand
+
+        if target == "deck":
+
+            if len(hand) <= 0:
+                return  # exchanging 0 cards is a no op
+
+            if not 'discards' in action:
+                raise IllegalActionError("No list of cards to discard.")
+
+            discards = action['discards']    
+
+            for d in discards:
+                b = self.game_state.buildings[d] 
+                if b not in hand:
+                    raise IllegalActionError("Can't discard something \
+                        that's not in your hand: %s" % b)
+                hand.remove(b)
+                self.game_state.building_card_deck.append(b)
+            n = len(discards)
+            replacements = draw_n(self.game_state.building_card_deck, n)
+            hand.extend(replacements)
+        else:
+            #swap hands with someone else.  did it by copying contents instead of swapping actual
+            #lists in case sqlalchemy needs it this way.  might be overly paranoid .
+            #blame my bad experience with JDO ages ago.
+
+            other_hand = self.game_state.players[target].districts_in_hand
+            buff = hand[:] 
+            hand[:] = other_hand
+            other_hand[:] = buff
+
+
+    # here only for completeness, doesn't do anything
+    # crown is assigned at end of round.
+    def handle_power_4(self, action, cur_plyr):
         pass
 
-    def handle_power_4(self, action, cur_plyr):
-        dispense_bonus_gold("yellow", cur_plyr)
-
+    # here only for completeness, doesn't do anything
+    # immunity is handled in handle_power_8 
     def handle_power_5(self, action, cur_plyr):
-        dispense_bonus_gold("blue", cur_plyr)
+        pass
 
+    # here only for completeness, doesn't do anything
+    # the automatic bonus of 1 gold is handled when keeping a card
+    # or taking gold 
     def handle_power_6(self, action, cur_plyr):
-        dispense_bonus_gold("green", cur_plyr)
+        pass
 
+    # here only for completeness, doesn't do anything
+    # the automatic bonus of 2 cards gold is handled when keeping a card
+    # or taking gold. the extra building ability is handled in build_district 
     def handle_power_7(self, action, cur_plyr):
         pass
 
     def handle_power_8(self, action, cur_plyr):
-        dispense_bonus_gold("red", cur_plyr)
+        self.validate_phase_and_step(Phase.PLAY_TURNS, Step.FINISH)
+        if not 'target_player_id' in action:
+           raise IllegalActionError("No target player specified")
+        target_player_pos = action['target_player_id']
+
+        if not 'target_card_id' in action:
+           raise IllegalActionError("No target card specified")
+        target_card_id = action['target_card_id']
+        target_card = self.game_state.buildings[target_card_id]
+
+        if target_player_pos not in range(self.game_state.num_players):
+           raise IllegalActionError("Invalid target: %s" % target_player_pos)   
+
+        target_plyr = self.game_state.players[target_player_pos]
+
+        if len(target_plyr.districts_on_table) >= 8:
+            raise IllegalActionError("Not allowed to target player with 8 districts")
+
+        if target_plyr.character == 5:
+            raise IllegalActionError("Not allowed to target player with character #5")
+
+        logging.warning("target_plyer is %s" % str(target_plyr))
+        logging.warning("target card is %s" % str(target_card))
+        if target_card not in target_plyr.districts_on_table:
+            raise IllegalActionError("Target Player does not have target district")
+
+
+        cost_to_raze = target_card.cost - 1
+
+        if cost_to_raze > cur_plyr.gold:
+            raise IllegalActionError("Not enough gold to destroy target district")
+
+        cur_plyr.gold -= cost_to_raze
+        target_plyr.districts_on_table.remove(target_card)
+
 
     def validate_phase_and_step(self, phase, *steps):
         if self.game_state.phase is not phase:
@@ -440,11 +568,56 @@ class GameState:
         return ("phase=%s, step=%s, cur_player_index: %s, round=%s" % 
             (self.phase, self.step, self.cur_player_index, self.round))
 
+    def finish_round(self):
+        #TODO: announce dead player if any
+
+        self.check_for_victory()
+
+        #if the konig was around, give that player the crown
+        m = self.round.char_to_plyr_map
+        if 4 in m:
+            #TODO:  announce which player now has the crown
+            self.player_with_crown_token = m[4]
+
     def start_new_round(self):
         self.round = Round(self.players, self.random_gen)
         self.cur_player_index = self.player_with_crown_token
         self.phase = Phase.PICK_CHARACTERS
         self.step = Step.NONE
+        self.round_num += 1
+
+    def check_for_victory(self):
+        #when soeone has built 8 things, game is over
+        if self.end_game:
+            rankings = []
+            for p in self.players:
+
+                basic_points = 0
+                bonus_points = 0
+                colors = {}
+                for d in p.districts_on_table:
+                    basic_points += d.points
+                    colors[d.color] = True
+
+                if len(colors.keys()) == 5:
+                    p.rainbow_bonus = True
+                    bonus_points += 3
+
+
+                if len(p.districts_on_table) >= 8:
+                    bonus_points += 2
+
+                if p.first_to_eight_districts:
+                    bonus_points += 2
+
+                p.points = basic_points + bonus_points
+                p.ranking = (p.points, p.gold, basic_points)
+            #TODO:  implement official tiebreaker                        
+            ranked_players = sorted(self.players, key=lambda p:p.ranking, reverse=True )
+            self.winner = ranked_players[0].name
+
+            return True
+        return False 
 
 #TODO:  make sure we can't have 2 players with the same name.  or else
 # make sure we handle that case properly
@@ -475,7 +648,7 @@ class Player:
 
     def __repr__(self):
         return "Player(name=%s, pos=%s, char= %s, gold=%s, hand=%r, dists=%s)" % (self.name, 
-            self.position, self.character, self.gold, ids(self.districts_in_hand),len(self.districts_on_table))
+            self.position, self.character, self.gold, ids(self.districts_in_hand),self.districts_on_table)
 
 # this is sort of a hack for now, to make it convenient to run tests
 # right from sublime.

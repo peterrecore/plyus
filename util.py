@@ -2,7 +2,6 @@ import logging
 import json
 
 def draw_n(some_list, n):
-    #TODO: check to make sure there are enough elements to return
     if len(some_list) < n:
       raise ValueError("trying to draw %s elements from a list of len %s" % (n, len(some_list)))
 

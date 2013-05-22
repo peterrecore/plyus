@@ -9,12 +9,24 @@ Thoughts
 		  It wants to call something like "next_characters_turn"
 		  instead of setting properites on gamestate fields directly.
 
-	- Conundrum - do I used indexes or id's to refer to items in general.
-
+    - Conundrum - do I used indexes or id's to refer to items in general.
 
     - Would be nice if Referee didn't have any state to be saved between actions.s
 
     - should Referee and Gamestate be combined?
+
+
+    - #TODO invariant to test - number of cards in deck, players hands, on table, etc should always be the same
+
+before enabling bonuses, it took 4051 rounds to do 100 of 2,3,and 4 player simpleaitests
+after enabling just the #6 special bonus, it took 3785 total rounds
+after enabling the bonuses for 4,5,6 and 8, it took 3208 total rounds
+after enabling the card bonus for 7, it took 2729 total rounds
+after enabling the multibuild bonus for 7, it took 2721 total rounds
+after enabling murder, it took 2773 total rounds (simpleAI isn't very good at picking a target)
+after enabling murder, it took 2752 total rounds (surprisingly, mugging increased efficiency!)
+2763 after enabling #3's power
+2759 after tweaking simpleai to swap hands with next playr when it has an empty hand
 
 Refactor:
 	- canonicalize district/building and person/character

@@ -1,5 +1,6 @@
 import logging
 import json
+import itertools
 
 def draw_n(some_list, n):
     if len(some_list) < n:
@@ -23,6 +24,10 @@ def lowest_higher_than(list, x):
    		if n > x: 
    			return n
    	return None
+
+def flatten(list_of_lists):
+    flat_list = list(itertools.chain.from_iterable(list_of_lists))
+    return flat_list
 
 def ids(xs):
 	return [x.id for x in xs]

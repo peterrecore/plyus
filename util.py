@@ -16,7 +16,6 @@ def reverse_map(m):
 	for (k,v) in m.items():
 		reversed[v] = k
 	return reversed
-    # given a mapping from player # to 
 
 def lowest_higher_than(list, x):
    	"""Given a list, find the lowest element that is higher than n"""

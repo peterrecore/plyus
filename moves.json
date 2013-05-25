@@ -22,9 +22,10 @@
 		,{"player":1, "action":{"name":"hide_character", "target":6}}
 		,{"player":0, "action":{"name":"pick_character", "target":1}}
 		,{"player":0, "action":{"name":"take_gold"}}
-		,{"player":0, "action":{"name":"take_gold"}}
 		,{"player":0, "action":{"name":"build_district", "target":13}}
 		,{"player":0, "action":{"name":"finish"}}
+		,{"player":1, "action":{"name":"take_gold"}}
+		,{"player":1, "action":{"name":"finish"}}
 		,{"player":1, "action":{"name":"take_gold"}}
 		,{"player":1, "action":{"name":"build_district", "target":6}}
 		,{"player":1, "action":{"name":"finish"}}

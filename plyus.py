@@ -5,6 +5,10 @@ from util import lowest_higher_than
 from util import reverse_map
 from util import ids
 from collections import defaultdict
+from errors import NotYourTurnError
+from errors import IllegalActionError
+from errors import NoSuchActionError
+from errors import FatalPlyusError 
 
 class Building(object):
 
@@ -39,39 +43,6 @@ def create_building_map(buildings):
     m = {}
     m.update([(b.id, b) for b in buildings]) 
     return m
-
-class NotYourTurnError(Exception):
-    def __init__(self, attempted_player, cur_player_index):
-        self.attempted_player = attempted_player
-        self.cur_player = cur_player_index
-
-    def __repr__(self):
-        return ("NotYourTurnError(attempted_player=%s, cur_player=%s" 
-            % (self.attempted_player, self.cur_player))
-
-class NoSuchActionError(Exception):
-    def __init__(self, attempted_action):
-        self.attempted_action = attempted_action
-
-    def __repr__(self):
-        return "NoSuchActionError(attempted_action=%s" % (self.attempted_action)
-
-
-class FatalPlyusError(Exception):
-    def __init__(self, explanation):
-        self.explanation = explanation
-
-#TODO: refactor errors so we can include an explanation in each
-#TODO: refactor errors so they log themselves 
-
-class IllegalActionError(Exception):
-    def __init__(self, attempted_action=""):
-        self.attempted_action = attempted_action
-    def __repr__(self):
-        return "IllegalActionError(attempted_action=%s)" % (self.attempted_action)
-
-
-
 
 
 #Each Round consists of two phases
@@ -595,19 +566,13 @@ class Referee:
             raise IllegalActionError
 
 
-def init_player(p, i, draw_pile):
-        p.set_position(i) 
-        #TODO:  replace magic number with actual number of cards in starting hand.
-        p.districts_in_hand.extend(util.draw_n(draw_pile, 2)) 
-
-
-
 #TODO: refactor so referee is the only one who knows about random_gen
 #      make all gamestate methods more testable by injecting the randomly chosen
 #      items rather than doing the random choosing internally
 class GameState:
 
     def initialize_game(self, r, players, deck):
+
         self.end_game = False
         self.players = players
         self.random_gen = r
@@ -618,7 +583,10 @@ class GameState:
 
         self.num_players = len(self.players)
 
-        [init_player(p, i, self.building_card_deck) for i,p in enumerate(players)]
+        for i,p in enumerate(players):
+            p.set_position(i) 
+            #TODO:  replace magic number with actual number of cards in starting hand.
+            p.districts_in_hand.extend(util.draw_n(self.building_card_deck, 2)) 
 
         self.round_num = -1
         self.round = Round(players, self.random_gen)

@@ -24,10 +24,10 @@ after enabling the bonuses for 4,5,6 and 8, it took 3208 total rounds
 after enabling the card bonus for 7, it took 2729 total rounds
 after enabling the multibuild bonus for 7, it took 2721 total rounds
 after enabling murder, it took 2773 total rounds (simpleAI isn't very good at picking a target)
-after enabling murder, it took 2752 total rounds (surprisingly, mugging increased efficiency!)
+after enabling thief, it took 2752 total rounds (surprisingly, mugging increased efficiency!)
 2763 after enabling #3's power
 2759 after tweaking simpleai to swap hands with next playr when it has an empty hand
-
+2991 after adding #8's ability
 Refactor:
 	- canonicalize district/building and person/character
 	- PEP8 adherence - get rid of camelcase

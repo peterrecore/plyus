@@ -1,10 +1,10 @@
 import logging
 import csv
-from util import draw_n
+import util 
 from util import lowest_higher_than
 from util import reverse_map
 from util import ids
-
+from collections import defaultdict
 
 class Building(object):
 
@@ -87,7 +87,8 @@ class Step:
     STEAL = 'STEAL'
     RAZE = 'RAZE'
     BUILD_DISTRICT = 'BUILD_DISTRICT' 
-    NONE = 'NO_STEP' 
+    PICK_CHAR = 'PICK_CHAR' 
+    HIDE_CHAR = 'HIDE_CHAR' 
     FINISH = 'FINISH'
 
 class Round:
@@ -95,7 +96,7 @@ class Round:
         self.players = players
         self.random_gen = random_gen
 
-        self.plyr_to_char_map = {} #maps 
+        self.plyr_to_char_map = defaultdict(list) 
         self.char_to_plyr_map = {}
         self.has_used_power = {}
         self.has_taken_bonus = {}
@@ -105,31 +106,47 @@ class Round:
 
 
         for p in players:
-            self.plyr_to_char_map[p.position] = False
+            #TODO: cleanup before committing for 2/3 player mode
+            #self.plyr_to_char_map[p.position] = False no need to init now that this is a defaultdict
             self.has_used_power[p.position] = False
             self.has_taken_bonus[p.position] = False
+            p.chars = []
+            p.cur_char = None
 
         face_up_num, face_down_num = self.char_setup_for_n_players(len(players))
         self.character_draw_pile = [1,2,3,4,5,6,7,8]
         random_gen.shuffle(self.character_draw_pile)
-        self.face_up_chars = draw_n(self.character_draw_pile, face_up_num)
-        self.face_down_chars = draw_n(self.character_draw_pile, face_down_num)
+        self.face_up_chars = util.draw_n(self.character_draw_pile, face_up_num)
+        self.face_down_chars = util.draw_n(self.character_draw_pile, face_down_num)
 
     def mark_character_picked(self, character, player):
-        self.plyr_to_char_map[player] = character
+        self.plyr_to_char_map[player].append(character)
         self.char_to_plyr_map[character] = player
         self.character_draw_pile.remove(character)
 
     def char_setup_for_n_players(self, n):
-        if n == 2: return (3,2)
-        if n == 3: return (2,2)
+        # return (num_face_up, num_face_down)
+        if n == 2: return (0,1)
+        if n == 3: return (0,1)
         if n == 4: return (2,1)
         if n == 5: return (1,1)
+        if n == 6: return (0,1)
         raise FatalPlyusError("Wrong number of players: %s" % n)
     
     def done_picking(self):
         #if no player still needs to choose, we're done picking
-        return False not in self.plyr_to_char_map.values()
+        # easy case - if everyone has picked one char we're done
+
+        chars_picked = util.flatten(self.plyr_to_char_map.values())
+        num_chars_picked = len(chars_picked)
+        num_players = len(self.players)
+
+        num_chars_per_player = 1
+
+        if num_players <= 3:
+            num_chars_per_player = 2
+
+        return num_chars_picked >= num_players * num_chars_per_player
 
     def __repr__(self):
         return "Round(draw:%s, up:%s, down:%s\n    plyr_to_char:%s  char_to_plyr:%s" % (self.character_draw_pile,
@@ -141,6 +158,7 @@ class Referee:
         self.random_gen = rg
         self.action_handlers = {
              'pick_character':self.handle_pick_character
+            ,'hide_character':self.handle_hide_character
             ,'take_gold':self.handle_take_gold
             ,'build_district':self.handle_build_district
             ,'draw_cards':self.handle_draw_cards
@@ -205,7 +223,7 @@ class Referee:
         if round.has_used_power[cur_player.position]:
             raise IllegalActionError("Already Used Power")
 
-        handler = self.power_handlers[cur_player.character]
+        handler = self.power_handlers[cur_player.cur_char]
         handler(action, cur_player)
         round.has_used_power[cur_player.position] = True
 
@@ -213,7 +231,10 @@ class Referee:
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.BUILD_DISTRICT, Step.FINISH)
 
         round = self.game_state.round
-        cur_char = round.plyr_to_char_map[cur_player.position]
+    #TODO:  cleanup as part of 2/3 change
+    #   cur_char = round.plyr_to_char_map[cur_player.position]
+        cur_char = cur_player.cur_char
+
         logging.info("cur_player is %s, cur_char=%s" % (cur_player,cur_char))
         next_char = lowest_higher_than(round.char_to_plyr_map.keys(), cur_char)  
         if next_char == round.dead_char:
@@ -227,11 +248,12 @@ class Referee:
             self.game_state.start_new_round()
 
         else:
-            #figure out who the next player is, based on the next character to play.
+            #figure out who the next player is, based on the next cur_char to play.
             #reset the step for that player.
             next_player = round.char_to_plyr_map[next_char]
             self.game_state.cur_player_index = next_player
             self.cur_player_index = round.char_to_plyr_map[next_char]
+            self.game_state.players[next_player].cur_char = next_char
             self.game_state.step = Step.COINS_OR_DISTRICT
 
     #some things happen before a player "takes an action"
@@ -239,7 +261,7 @@ class Referee:
     # we will consider this equivalent to the "start of the turn"
     def pre_action_effects(self, cur_player):
         rnd = self.game_state.round
-        if cur_player.character == rnd.mugged_char:
+        if cur_player.cur_char == rnd.mugged_char:
            stolen = cur_player.gold 
            cur_player.gold = 0
            mugger = rnd.char_to_plyr_map[2]
@@ -249,11 +271,11 @@ class Referee:
     #some things happen after a player "takes an action"
     # which means after they draw cards or take gold
     def post_action_effects(self, cur_player):
-        if cur_player.character == 6:
+        if cur_player.cur_char == 6:
             cur_player.gold += 1
             #TODO:  merchant getting a bonus gold needs to be an announced event
-        if cur_player.character == 7:
-            cards = draw_n(self.game_state.building_card_deck, 2)
+        if cur_player.cur_char == 7:
+            cards = util.draw_n(self.game_state.building_card_deck, 2)
             cur_player.districts_in_hand.extend(cards)
             #TODO: announce player getting bonus cards
 
@@ -297,7 +319,7 @@ class Referee:
         #unless current char is 7, we only get one build so next step is finish
         r = self.game_state.round
         r.num_seven_builds_left -= 1
-        if (cur_player.character == 7 and r.num_seven_builds_left > 0):
+        if (cur_player.cur_char == 7 and r.num_seven_builds_left > 0):
             self.game_state.step = Step.BUILD_DISTRICT
         else:
             self.game_state.step = Step.FINISH
@@ -330,8 +352,29 @@ class Referee:
         self.post_action_effects(cur_player)
         self.game_state.step = Step.BUILD_DISTRICT
 
+
+
+    def handle_hide_character(self, action, cur_player):
+        self.validate_phase_and_step(Phase.PICK_CHARACTERS, Step.HIDE_CHAR)
+
+        if 'target' not in action:
+            logging.error("hide char action with no target")
+            raise IllegalActionError()
+
+        target = action['target']
+
+        if (target not in self.game_state.round.character_draw_pile):
+            logging.error("hide char action with target not in draw pile")
+
+        round = self.game_state.round
+        round.character_draw_pile.remove(target)
+        round.face_down_chars.append(target)
+
+        self.game_state.advance_cur_player_index()
+        self.game_state.step = Step.PICK_CHAR
+
     def handle_pick_character(self, action, cur_player):
-        self.validate_phase_and_step(Phase.PICK_CHARACTERS, Step.NONE)
+        self.validate_phase_and_step(Phase.PICK_CHARACTERS, Step.PICK_CHAR)
 
         if 'target' not in action:
             logging.error("pick char action with no target")
@@ -342,18 +385,35 @@ class Referee:
         if (target not in self.game_state.round.character_draw_pile):
             logging.error("pick char action with target not in draw pile")
 
-        cur_player.character = target
         round = self.game_state.round
+
+        cur_player.chars.append(target)
         round.mark_character_picked(target, cur_player.position)
+
+        # handle 2 player special case
+        # players must place a char card face down after their middle picks
+        # to maintain uncertainty
+        num_chars_picked_so_far = len(round.char_to_plyr_map)
+        if (self.game_state.num_players == 2 and num_chars_picked_so_far in [2,3]):
+            self.game_state.step = Step.HIDE_CHAR
+            return
+
         #if all players have picked a character
         if (self.game_state.round.done_picking()):
             # it's time to play turns, in character number order.
             # so figure out which character's turn it is, and set them
             # to be current player.
-            current_character = lowest_higher_than(round.plyr_to_char_map.values(),0)
-            self.game_state.cur_player_index = round.char_to_plyr_map[current_character]
-            logging.info("Done Picking.  cur_char=%s, cur_plyr_pos=%s " 
-                % (current_character, self.game_state.cur_player_index))
+
+            chars_in_play = util.flatten(round.plyr_to_char_map.values())
+
+            current_character = lowest_higher_than(chars_in_play,0)
+            cur_plyr_index =  round.char_to_plyr_map[current_character]
+            self.game_state.cur_player_index = cur_plyr_index
+
+            self.game_state.players[cur_plyr_index].cur_char = current_character
+
+            logging.info("Done Picking.  cur_char=%s, chars= %s, cur_plyr_pos=%s " 
+                % (current_character, cur_player.chars, self.game_state.cur_player_index))
             self.game_state.phase = Phase.PLAY_TURNS
             self.game_state.step = Step.COINS_OR_DISTRICT
 
@@ -369,13 +429,13 @@ class Referee:
                              Step.COINS_OR_DISTRICT)
         color_map = {4:"yellow", 5:"blue", 6:"green",8:"red"}
 
-        if cur_plyr.character not in color_map:
-            raise IllegalActionError("character %s doesn't get bonus gold" % cur_plyr.character)
+        if cur_plyr.cur_char not in color_map:
+            raise IllegalActionError("character %s doesn't get bonus gold" % cur_plyr.cur_char)
 
         if self.game_state.round.has_taken_bonus[cur_plyr.position]:
             raise IllegalActionError("player has already taken bonus this round")
 
-        color = color_map[cur_plyr.character]
+        color = color_map[cur_plyr.cur_char]
 
         num_color = sum(1 for d in cur_plyr.districts_on_table if d.color == color)
         cur_plyr.gold += num_color
@@ -445,7 +505,7 @@ class Referee:
                 hand.remove(b)
                 self.game_state.building_card_deck.append(b)
             n = len(discards)
-            replacements = draw_n(self.game_state.building_card_deck, n)
+            replacements = util.draw_n(self.game_state.building_card_deck, n)
             hand.extend(replacements)
         else:
             #swap hands with someone else.  did it by copying contents instead of swapping actual
@@ -499,7 +559,7 @@ class Referee:
         if len(target_plyr.districts_on_table) >= 8:
             raise IllegalActionError("Not allowed to target player with 8 districts")
 
-        if target_plyr.character == 5:
+        if target_plyr.cur_char == 5:
             raise IllegalActionError("Not allowed to target player with character #5")
 
         logging.warning("target_plyer is %s" % str(target_plyr))
@@ -519,20 +579,26 @@ class Referee:
 
     def validate_phase_and_step(self, phase, *steps):
         if self.game_state.phase is not phase:
+            logging.error("attempting action that requires phase %s, but current phase is %s" %
+                (phase, self.game_state.phase))
             raise IllegalActionError
 
         if self.game_state.step not in steps:
+            logging.error("attempting action that requires step %s, but current step is %s" %
+                (steps, self.game_state.step))
             raise IllegalActionError
 
     def validate_step(self, *steps):
         if self.game_state.step not in steps:
+            logging.error("attempting action that requires step %s, but current step is %s" %
+                (steps, self.game_state.step))
             raise IllegalActionError
 
 
 def init_player(p, i, draw_pile):
         p.set_position(i) 
         #TODO:  replace magic number with actual number of cards in starting hand.
-        p.districts_in_hand.extend(draw_n(draw_pile, 2)) 
+        p.districts_in_hand.extend(util.draw_n(draw_pile, 2)) 
 
 
 
@@ -583,7 +649,7 @@ class GameState:
         self.round = Round(self.players, self.random_gen)
         self.cur_player_index = self.player_with_crown_token
         self.phase = Phase.PICK_CHARACTERS
-        self.step = Step.NONE
+        self.step = Step.PICK_CHAR
         self.round_num += 1
 
     def check_for_victory(self):
@@ -628,7 +694,8 @@ class Player:
         self.gold = 2
         self.districts_on_table = []
         self.districts_in_hand = []
-        self.character = None
+        self.cur_char = None
+        self.chars = [] 
         self.rainbow_bonus = False
         self.first_to_eight_districts = False
 
@@ -641,14 +708,14 @@ class Player:
         if len(deck) < 2:
             #TODO: figure out and implement rule on reshuffling district cards 
             raise FatalPlyusError("District deck is out of cards.")
-        self.districts_buffer = draw_n(deck, 2)
+        self.districts_buffer = util.draw_n(deck, 2)
 
     def set_position(self, i):
         self.position = i
 
     def __repr__(self):
-        return "Player(name=%s, pos=%s, char= %s, gold=%s, hand=%r, dists=%s)" % (self.name, 
-            self.position, self.character, self.gold, ids(self.districts_in_hand),self.districts_on_table)
+        return "Player(name=%s, pos=%s, cur_char= %s, chars=%s, gold=%s, hand=%r, dists=%s)" % (self.name, 
+            self.position, self.cur_char, self.chars, self.gold, ids(self.districts_in_hand),self.districts_on_table)
 
 # this is sort of a hack for now, to make it convenient to run tests
 # right from sublime.

@@ -9,7 +9,7 @@ from plyus import *
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.WARNING) 
+        logging.basicConfig(level=logging.DEBUG) 
 
     def test_create_deck_from_file(self):
         deck = Building.create_deck_from_csv('decks/deck_test_30.csv') 
@@ -38,9 +38,9 @@ class TestAllTheThings(unittest.TestCase):
         [p.set_position(i) for i,p in enumerate(players)]
         r = Round(players, random_generator)
 
-        self.assertEqual(len(r.face_up_chars), 3)
-        self.assertEqual(len(r.face_down_chars), 2)
-        self.assertEqual(len(r.character_draw_pile),3)
+        self.assertEqual(len(r.face_up_chars), 0)
+        self.assertEqual(len(r.face_down_chars), 1)
+        self.assertEqual(len(r.character_draw_pile),7)
 
     #when the wrong player tries to take a move
     # we expect an Error.
@@ -83,14 +83,16 @@ class TestAllTheThings(unittest.TestCase):
         r = random.Random(42)
         #counter = collections.Counter()
         total_rounds = 0
-        for a in range(100):
+        for a in range(50):
             total_rounds += self.do_simple_ai_test(r, 2)
             total_rounds += self.do_simple_ai_test(r, 3)
             total_rounds += self.do_simple_ai_test(r, 4)
+            total_rounds += self.do_simple_ai_test(r, 5)
+            total_rounds += self.do_simple_ai_test(r, 6)
         logging.warning("total_rounds: %s" % total_rounds)
 
     def do_simple_ai_test(self, r, num_players):
-        names = ['PeterAI', 'MananAI','AndyAI','MarkAI'] 
+        names = ['PeterAI', 'MananAI','AndyAI','MarkAI','KevinAI','RyanAI','TabithaAI'] 
         ais = {}
         players = []
         for n in names[0:num_players]:
@@ -117,7 +119,7 @@ class TestAllTheThings(unittest.TestCase):
                  logging.warning("Player %s had %s pts" % (p.name, p.points))
                return game.round_num
         logging.error("Didn't finish game in %s steps, ending test" % num_steps)
-        self.assertTrue(False) 
+        self.assertTrue(False, "didn't finish game in right amount of steps") 
 
     def setUp(self):
         logging.info("\n--------- running %s -------------" % self.id())
@@ -141,7 +143,7 @@ class SimpleAIPlayer():
 
     def ponder_coins_or_district(self, game, me):
         if (not game.round.has_taken_bonus[me.position] and
-            me.character in [4,5,6,8]):
+            me.cur_char in [4,5,6,8]):
             return {"name":"take_bonus"}
 
         if len(me.districts_in_hand) > 0:
@@ -165,10 +167,10 @@ class SimpleAIPlayer():
 
     def ponder_finish(self, game, me):
         if not game.round.has_used_power[me.position]:
-            if me.character in [1,2] :
+            if me.cur_char in [1,2] :
                 return {"name":"use_power","target":self.likely_victim}
 
-            if me.character == 3:
+            if me.cur_char == 3:
                 discard = []
                 if len(me.districts_in_hand) >= 1:
                     discard.append(me.districts_in_hand[0].id)
@@ -177,7 +179,7 @@ class SimpleAIPlayer():
                 victim_pos = (me.position + 1) % game.num_players
                 return {"name":"use_power", "target":victim_pos}
 
-            if me.character == 8:
+            if me.cur_char == 8:
                 victim = game.players[(me.position + 1) % game.num_players]
                 logging.warning("victim is %s" % victim)
                 potential_target = None
@@ -185,7 +187,7 @@ class SimpleAIPlayer():
                     potential_target = sorted(victim.districts_on_table, key=lambda d:d.cost)[0]
                 if (potential_target and
                    potential_target.cost <= me.gold and
-                   victim.character != 5):
+                   victim.cur_char != 5):
                     return {"name":"use_power","target_player_id":victim.position, "target_card_id":potential_target.id}
         return {"name":"finish"}
 
@@ -229,5 +231,5 @@ def create_def_deck():
 
 
 if __name__ == '__main__':
-    #logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
     unittest.main()

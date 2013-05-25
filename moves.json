@@ -1,13 +1,27 @@
 {	"valid_moves":
-		[{"player":0, "action":{"name":"pick_character", "target":4}}
+		[{"player":0, "action":{"name":"pick_character", "target":1}}
 		,{"player":1, "action":{"name":"pick_character", "target":7}}
+		,{"player":1, "action":{"name":"hide_character", "target":5}}
+		,{"player":0, "action":{"name":"pick_character", "target":3}}
+		,{"player":0, "action":{"name":"hide_character", "target":6}}
+		,{"player":1, "action":{"name":"pick_character", "target":4}}
+		,{"player":0, "action":{"name":"take_gold"}}
+		,{"player":0, "action":{"name":"finish"}}
 		,{"player":0, "action":{"name":"take_gold"}}
 		,{"player":0, "action":{"name":"finish"}}
 		,{"player":1, "action":{"name":"draw_cards"}}
 		,{"player":1, "action":{"name":"keep_card", "target":0}}
 		,{"player":1, "action":{"name":"finish"}}
-		,{"player":0, "action":{"name":"pick_character", "target":2}}
-		,{"player":1, "action":{"name":"pick_character", "target":8}}
+		,{"player":1, "action":{"name":"draw_cards"}}
+		,{"player":1, "action":{"name":"keep_card", "target":0}}
+		,{"player":1, "action":{"name":"finish"}}
+		,{"player":1, "action":{"name":"pick_character", "target":2}}
+		,{"player":0, "action":{"name":"pick_character", "target":8}}
+		,{"player":0, "action":{"name":"hide_character", "target":5}}
+		,{"player":1, "action":{"name":"pick_character", "target":3}}
+		,{"player":1, "action":{"name":"hide_character", "target":6}}
+		,{"player":0, "action":{"name":"pick_character", "target":1}}
+		,{"player":0, "action":{"name":"take_gold"}}
 		,{"player":0, "action":{"name":"take_gold"}}
 		,{"player":0, "action":{"name":"build_district", "target":13}}
 		,{"player":0, "action":{"name":"finish"}}

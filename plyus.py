@@ -1,6 +1,7 @@
 import logging
 import csv
 import util 
+import json
 from util import lowest_higher_than
 from util import reverse_map
 from util import ids
@@ -12,14 +13,14 @@ from errors import FatalPlyusError
 
 class Building(object):
 
-    def __init__(self,i, c, p, n, cost=None):
-        self.id = i
-        self.color = c
-        self.points = p
-        self.name = n
+    def __init__(self,id, color, points, name, cost=None):
+        self.id = id
+        self.color = color
+        self.points = points
+        self.name = name
         self.cost = cost
         if cost is None:
-            self.cost = p 
+            self.cost = points
 
     def __repr__(self):
         return "Building(id=%s, %s, %s, %s, %s)"% (self.id,self.name , self.color, self.points, self.cost)
@@ -44,6 +45,13 @@ def create_building_map(buildings):
     m.update([(b.id, b) for b in buildings]) 
     return m
 
+#Each game consists of several stages, progressing forward relentlessly
+# (no backsies or looping)
+class Stage:
+    PRE_GAME = 'PRE_GAME'  #still waiting for players to join
+    PLAYING = 'PLAYING' # game has started
+    END_GAME = 'END_GAME' #a player built 8 buidings, so this is the last round
+    GAME_OVER = 'GAME_OVER' #last round finished, winners/scores recorded
 
 #Each Round consists of two phases
 class Phase:
@@ -77,8 +85,6 @@ class Round:
 
 
         for p in players:
-            #TODO: cleanup before committing for 2/3 player mode
-            #self.plyr_to_role_map[p.position] = False no need to init now that this is a defaultdict
             self.has_used_power[p.position] = False
             self.has_taken_bonus[p.position] = False
             p.roles = []
@@ -123,6 +129,15 @@ class Round:
         return "Round(draw:%s, up:%s, down:%s\n    plyr_to_role:%s  role_to_plyr:%s" % (self.role_draw_pile,
             self.face_up_roles, self.face_down_roles, self.plyr_to_role_map, self.role_to_plyr_map)
 
+    def to_dict_for_public(self):
+        d = {}
+        fields_to_copy = ['face_up_roles', 'has_used_power', 'has_taken_bonus', 'num_seven_builds_left']
+
+        for k in fields_to_copy:
+            d[k] = self.__dict__[k]
+
+        return d
+
 class Referee:
     def __init__(self, rg, gs):
         self.game_state = gs
@@ -148,6 +163,9 @@ class Referee:
 
     #TODO: validate that move is a valid move object.  possibly 
     # make an actual Move class that ensures validity
+    #TODO: validate that the player submitting this move
+    # matches the player in the move.  This might need to happen
+    # at a higher layer
     def perform_move(self, move):
         logging.debug('game_state is %s' % self.game_state)
 
@@ -173,15 +191,24 @@ class Referee:
 
         #building an 8th building triggers the end of the game
         if len(cur_player.buildings_on_table) >= 8:
-            #if no one else has trigged the end yet, this player is first
+            #if no one else has trigged the END_GAME yet, this player is first
             #to get 8 buildings, and gets a bonus
-            if not self.game_state.end_game:
+            if self.game_state.stage == Stage.PLAYING: 
                 cur_player.first_to_eight_buildings = True
-            self.game_state.end_game = True
+                self.game_state.stage = Stage.END_GAME
 
+        new_cur_player = self.game_state.cur_player_index
         logging.debug(" -- action handled.")
+        return self.get_current_state_as_json_for_player(new_cur_player)
+
+    def get_current_state_as_json_for_player(self, player_index):
         # return the new state of the game
-        return self.game_state
+        for_player = self.game_state.players[player_index]
+        d = {}
+        d['game'] = self.game_state.to_dict_for_player(for_player)
+        d['me'] = for_player.to_dict_for_private()
+        j = util.to_json(d)
+        return j 
 
 
     def handle_use_power(self, action, cur_player):
@@ -202,8 +229,6 @@ class Referee:
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.BUILD_BUILDING, Step.FINISH)
 
         round = self.game_state.round
-    #TODO:  cleanup as part of 2/3 change
-    #   cur_role = round.plyr_to_role_map[cur_player.position]
         cur_role = cur_player.cur_role
 
         logging.info("cur_player is %s, cur_role=%s" % (cur_player,cur_role))
@@ -232,6 +257,7 @@ class Referee:
     # we will consider this equivalent to the "start of the turn"
     def pre_action_effects(self, cur_player):
         rnd = self.game_state.round
+        cur_player.revealed_roles.append(cur_player.cur_role)
         if cur_player.cur_role == rnd.mugged_role:
            stolen = cur_player.gold 
            cur_player.gold = 0
@@ -533,8 +559,8 @@ class Referee:
         if target_plyr.cur_role == 5:
             raise IllegalActionError("Not allowed to target player with role #5")
 
-        logging.warning("target_plyer is %s" % str(target_plyr))
-        logging.warning("target card is %s" % str(target_card))
+        logging.info("target_plyer is %s" % str(target_plyr))
+        logging.info("razing target is %s" % str(target_card))
         if target_card not in target_plyr.buildings_on_table:
             raise IllegalActionError("Target Player does not have target building")
 
@@ -573,7 +599,7 @@ class GameState:
 
     def initialize_game(self, r, players, deck):
 
-        self.end_game = False
+        self.stage = Stage.PRE_GAME
         self.players = players
         self.random_gen = r
         self.building_card_deck = deck
@@ -591,10 +617,39 @@ class GameState:
         self.round_num = -1
         self.round = Round(players, self.random_gen)
         self.player_with_crown_token = 0 #this player gets to go first when picking a role
-
+        self.stage = Stage.PLAYING
         self.start_new_round()
+        self.winner = None
 
+    def to_dict_for_public(self):
+        d = {}
+        fields_to_copy = ['round_num','player_with_crown_token','stage',
+                          'phase','step','cur_player_index','num_players',
+                          'winner']
+        for k in fields_to_copy:
+            d[k] = self.__dict__[k] 
 
+        d['players'] = [p.to_dict_for_public() for p in self.players]
+
+        r = self.round.to_dict_for_public()
+
+        d['round'] = r
+        return d
+
+    def to_dict_for_player(self, player):
+        d = self.to_dict_for_public()
+
+        r = self.round.to_dict_for_public()
+        logging.debug("in todictforplayer %s" % (player))
+        if player.position == self.cur_player_index and self.phase == Phase.PICK_ROLES:
+            logging.debug("assigning role_draw_pile now")
+            r['role_draw_pile'] = self.round.role_draw_pile
+        else:
+            logging.debug(" %s not equal %s" % (player.position, self.cur_player_index)) 
+            logging.debug("or  %s not equal %s" % (self.phase, Phase.PICK_ROLES)) 
+        d['round'] = r
+        return d
+         
     def advance_cur_player_index(self):
         self.cur_player_index = (self.cur_player_index + 1) % self.num_players
 
@@ -603,10 +658,15 @@ class GameState:
             (self.phase, self.step, self.cur_player_index, self.round))
 
     def finish_round(self):
+        logging.debug("made it to finish_round with stage as %s" % self.stage)
         #TODO: announce dead player if any
 
-        self.check_for_victory()
-
+        # if we are in the end_game (someone built 8 things)
+        # and we are done with the round, game is over
+        if self.stage == Stage.END_GAME:
+            self.do_game_over_calculations()
+            self.stage = Stage.GAME_OVER 
+        logging.debug("after end game check, stage is %s" % self.stage)
         #if the konig was around, give that player the crown
         m = self.round.role_to_plyr_map
         if 4 in m:
@@ -614,58 +674,64 @@ class GameState:
             self.player_with_crown_token = m[4]
 
     def start_new_round(self):
+        logging.debug("starting new round")
         self.round = Round(self.players, self.random_gen)
         self.cur_player_index = self.player_with_crown_token
         self.phase = Phase.PICK_ROLES
         self.step = Step.PICK_ROLE
         self.round_num += 1
 
-    def check_for_victory(self):
-        #when soeone has built 8 things, game is over
-        if self.end_game:
-            rankings = []
-            for p in self.players:
+        for p in self.players:
+            p.revealed_roles = []
 
-                basic_points = 0
-                bonus_points = 0
-                colors = {}
-                for d in p.buildings_on_table:
-                    basic_points += d.points
-                    colors[d.color] = True
+    # this should only be called at the end of a round, after
+    # all players have taken their turn and we are in the
+    # END_GAME stage
+    def do_game_over_calculations(self):
 
-                if len(colors.keys()) == 5:
-                    p.rainbow_bonus = True
-                    bonus_points += 3
+        rankings = []
+        for p in self.players:
+
+            basic_points = 0
+            bonus_points = 0
+            colors = {}
+            for d in p.buildings_on_table:
+                basic_points += d.points
+                colors[d.color] = True
+
+            if len(colors.keys()) == 5:
+                p.rainbow_bonus = True
+                bonus_points += 3
 
 
-                if len(p.buildings_on_table) >= 8:
-                    bonus_points += 2
+            if len(p.buildings_on_table) >= 8:
+                bonus_points += 2
 
-                if p.first_to_eight_buildings:
-                    bonus_points += 2
+            if p.first_to_eight_buildings:
+                bonus_points += 2
 
-                p.points = basic_points + bonus_points
-                p.ranking = (p.points, p.gold, basic_points)
-            #TODO:  implement official tiebreaker                        
-            ranked_players = sorted(self.players, key=lambda p:p.ranking, reverse=True )
-            self.winner = ranked_players[0].name
-
-            return True
-        return False 
+            p.points = basic_points + bonus_points
+            p.ranking = (p.points, p.gold, basic_points)
+        #TODO:  implement official tiebreaker                        
+        ranked_players = sorted(self.players, key=lambda p:p.ranking, reverse=True )
+        self.winner = ranked_players[0].name
 
 #TODO:  make sure we can't have 2 players with the same name.  or else
 # make sure we handle that case properly
 class Player:
     def __init__(self, n):
         self.name = n
-
+        self.position = None
         self.gold = 2
         self.buildings_on_table = []
         self.buildings_in_hand = []
+        self.buildings_buffer = []
         self.cur_role = None
-        self.roles = [] 
+        self.roles = []
+        self.revealed_roles = []
         self.rainbow_bonus = False
         self.first_to_eight_buildings = False
+        self.points = None
 
     #current player chooses to get gold
     def take_gold(self):
@@ -684,6 +750,29 @@ class Player:
     def __repr__(self):
         return "Player(name=%s, pos=%s, cur_role= %s, roles=%s, gold=%s, hand=%r, dists=%s)" % (self.name, 
             self.position, self.cur_role, self.roles, self.gold, ids(self.buildings_in_hand),self.buildings_on_table)
+
+    def to_dict_for_public(self):
+        d = {}
+        fields_to_copy = ['name','position','gold','buildings_on_table',
+        'points','revealed_roles']
+
+        for k in fields_to_copy:
+            d[k] = self.__dict__[k]
+        
+        d['num_cards_in_hand'] = len(self.buildings_in_hand)
+
+        return d
+
+
+    def to_dict_for_private(self):
+        d = self.to_dict_for_public()
+
+        fields_to_copy = ['buildings_in_hand','buildings_buffer', 'cur_role', 'roles']
+        for k in fields_to_copy:
+            d[k] = self.__dict__[k]
+       
+        return d
+
 
 # this is sort of a hack for now, to make it convenient to run tests
 # right from sublime.

@@ -12,24 +12,24 @@ def draw_n(some_list, n):
     return r
 
 def reverse_map(m):
-	reversed = {}
-	for (k,v) in m.items():
-		reversed[v] = k
-	return reversed
+  reversed = {}
+  for (k,v) in m.items():
+    reversed[v] = k
+  return reversed
 
 def lowest_higher_than(list, x):
-   	"""Given a list, find the lowest element that is higher than n"""
-   	for n in sorted(list):
-   		if n > x: 
-   			return n
-   	return None
+    """Given a list, find the lowest element that is higher than n"""
+    for n in sorted(list):
+      if n > x: 
+        return n
+    return None
 
 def flatten(list_of_lists):
     flat_list = list(itertools.chain.from_iterable(list_of_lists))
     return flat_list
 
 def ids(xs):
-	return [x.id for x in xs]
+  return [x.id for x in xs]
 
 def convert_to_builtin_type(obj):
     # Convert objects to a dictionary of their representation
@@ -40,6 +40,8 @@ def convert_to_builtin_type(obj):
     d.update(obj.__dict__)
     return d
 
+#this method has a major caveat - the __init__ method of the class being built
+# must have arguments named the same as the instance variables
 def dict_to_object(d):
     if '__class__' in d:
         class_name = d.pop('__class__')
@@ -53,7 +55,11 @@ def dict_to_object(d):
     return inst
 
 def to_json(x):
-	return json.dumps(x,default=convert_to_builtin_type, sort_keys=True)
+    j = json.dumps(x,default=convert_to_builtin_type, sort_keys=True)
+    logging.debug("json output is %s" % j)
+    return j
 
 def from_json(s):
-	return json.loads(s, object_hook=dict_to_object)
+    d = json.loads(s, object_hook=dict_to_object)
+    logging.debug("json loading type %s" % type(d)) 
+    return d

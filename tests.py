@@ -6,10 +6,16 @@ import collections
 from util import *
 from plyus import *
 
+
+class Object(object):
+    def __init__(self, d):
+        self.__dict__ = d
+
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         logging.basicConfig(level=logging.WARNING) 
+        logging.warning("Warning level set.")
 
     def test_create_deck_from_file(self):
         deck = Building.create_deck_from_csv('decks/deck_test_30.csv') 
@@ -84,14 +90,14 @@ class TestAllTheThings(unittest.TestCase):
         #counter = collections.Counter()
         total_rounds = 0
         for a in range(30):
-            total_rounds += self.do_simple_ai_test(r, 2)
-            total_rounds += self.do_simple_ai_test(r, 3)
-            total_rounds += self.do_simple_ai_test(r, 4)
-            total_rounds += self.do_simple_ai_test(r, 5)
-            total_rounds += self.do_simple_ai_test(r, 6)
+            total_rounds += self.do_ai_test_with_json(r, 2)
+            total_rounds += self.do_ai_test_with_json(r, 3)
+            total_rounds += self.do_ai_test_with_json(r, 4)
+            total_rounds += self.do_ai_test_with_json(r, 5)
+            total_rounds += self.do_ai_test_with_json(r, 6)
         logging.warning("total_rounds: %s" % total_rounds)
 
-    def do_simple_ai_test(self, r, num_players):
+    def do_ai_test(self, r, num_players):
         names = ['PeterAI', 'MananAI','AndyAI','MarkAI','KevinAI','RyanAI','TabithaAI'] 
         ais = {}
         players = []
@@ -110,9 +116,10 @@ class TestAllTheThings(unittest.TestCase):
             logging.debug("On step %s of simulation" % i)
             cur_plyr = game.players[game.cur_player_index]
             cur_ai = ais[cur_plyr.name]
-            move = cur_ai.decide_what_to_do(game)
+            move = cur_ai.decide_what_to_do_native(game)
             ref.perform_move(move)
-            if game.check_for_victory() :
+#            logging.warning("Stage is %s" % game.stage)
+            if game.stage == Stage.GAME_OVER :
                logging.warning("**********************************************")
                logging.warning("******* Success, game over and %s won   ******" % game.winner) 
                for p in game.players:
@@ -120,6 +127,54 @@ class TestAllTheThings(unittest.TestCase):
                return game.round_num
         logging.error("Didn't finish game in %s steps, ending test" % num_steps)
         self.assertTrue(False, "didn't finish game in right amount of steps") 
+
+    def do_ai_test_with_json(self, r, num_players):
+        names = ['PeterAI', 'MananAI','AndyAI','MarkAI','KevinAI','RyanAI','TabithaAI'] 
+        ais = {}
+        players = []
+        for n in names[0:num_players]:
+           ais[n] = SimpleAIPlayer(n)
+           players.append(Player(n))
+
+
+        test_deck = Building.create_deck_from_csv('decks/deck_test_60.csv')
+        game = GameState()
+        game.initialize_game(r,players, deck=test_deck)
+        ref = Referee(r,game)
+
+        json = ref.get_current_state_as_json_for_player(game.cur_player_index)
+        parsed_json = util.from_json(json) 
+        json_game = parsed_json['game']
+
+        game = None #force ourselves to use json from now on, and fail fast if
+                    #accidentally use game
+
+        num_steps = 100 * len(players)
+
+        logging.debug(json)
+
+        for i in range(num_steps):
+            logging.debug("On step %s of simulation" % i)
+            cur_plyr = json_game['players'][json_game['cur_player_index']]
+            cur_ai = ais[cur_plyr['name']]
+            move = cur_ai.decide_what_to_do_json(parsed_json)
+            json = ref.perform_move(move)
+            parsed_json = util.from_json(json)
+            json_game = parsed_json['game']
+            stage = json_game['stage']
+            if stage not in [Stage.GAME_OVER, Stage.END_GAME, Stage.PLAYING]:
+                self.assertTrue(False, "stage is not valid: %s" % stage)
+            logging.debug("stage is %s" % stage)
+            if stage == Stage.GAME_OVER :
+               logging.warning("**********************************************")
+               logging.warning("******* Success, game over and %s won   ******" % json_game['winner']) 
+               json_players = json_game['players']
+               for p in json_players:
+                 logging.warning("Player %s had %s pts" % (p['name'], p['points']))
+               return json_game['round_num']
+        logging.error("Didn't finish game in %s steps, ending test" % num_steps)
+        self.assertTrue(False, "didn't finish game in right amount of steps") 
+
 
     def setUp(self):
         logging.info("\n--------- running %s -------------" % self.id())
@@ -189,11 +244,11 @@ class SimpleAIPlayer():
             victim = game.players[(me.position + 1) % game.num_players]
             logging.debug("razing victim is %s" % victim)
             potential_target = None
-            if len(victim.buildings_on_table) > 0:
+            if 0 < len(victim.buildings_on_table) < 8:
                 potential_target = sorted(victim.buildings_on_table, key=lambda d:d.cost)[0]
             if (potential_target and
                potential_target.cost <= me.gold and
-               victim.cur_role != 5):
+               5 not in victim.revealed_roles):
                 return {"name":"use_power","target_player_id":victim.position, "target_card_id":potential_target.id}
 
         return {"name":"finish"}
@@ -214,9 +269,36 @@ class SimpleAIPlayer():
         return {"name":"pick_role", "target":my_role}
 
 
+    def decide_what_to_do_json(self, some_json):
+        def convert_to_int_keys(d):
+            for k,v in d.items():
+                d[int(k)] = v
+                del d[k]
 
-    def decide_what_to_do(self, game):
+
+        d = some_json['game']
+        game = Object(d)
+
+        r = Object(game.round)
+        game.round = r
+
+        #conversion here is needed because json turned the integer keys into
+        #strings, but we still want ints
+        convert_to_int_keys(r.has_taken_bonus)
+        convert_to_int_keys(r.has_used_power)
+
+        for p in game.players:
+            game.players[p['position']] = Object(p)
+
+        d = some_json['me']
+        me = Object(d)
+        return self.decide_what_to_do(game, me)
+
+    def decide_what_to_do_native(self, game):
         me = game.players[game.cur_player_index]
+        return self.decide_what_to_do(game, me)
+
+    def decide_what_to_do(self, game, me):
         a = None
 
 
@@ -238,4 +320,7 @@ def create_def_deck():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)
-    unittest.main()
+#    unittest.main()
+    suite = unittest.TestSuite()
+    suite.addTest(TestAllTheThings('test_multiple_simple_ai_tests'))
+    unittest.TextTestRunner(verbosity=2).run(suite)

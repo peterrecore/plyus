@@ -1,7 +1,6 @@
 import logging
 import csv
 import util 
-import json
 from util import lowest_higher_than
 from util import reverse_map
 from util import ids

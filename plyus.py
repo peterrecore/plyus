@@ -198,6 +198,7 @@ class Referee:
 
         new_cur_player = self.game_state.cur_player_index
         logging.debug(" -- action handled.")
+      
         return self.get_current_state_as_json_for_player(new_cur_player)
 
     def get_current_state_as_json_for_player(self, player_index):

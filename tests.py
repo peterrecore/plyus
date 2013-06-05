@@ -89,12 +89,13 @@ class TestAllTheThings(unittest.TestCase):
         r = random.Random(42)
         #counter = collections.Counter()
         total_rounds = 0
+        test_method = self.do_ai_test
         for a in range(30):
-            total_rounds += self.do_ai_test_with_json(r, 2)
-            total_rounds += self.do_ai_test_with_json(r, 3)
-            total_rounds += self.do_ai_test_with_json(r, 4)
-            total_rounds += self.do_ai_test_with_json(r, 5)
-            total_rounds += self.do_ai_test_with_json(r, 6)
+            total_rounds += test_method(r, 2)
+            total_rounds += test_method(r, 3)
+            total_rounds += test_method(r, 4)
+            total_rounds += test_method(r, 5)
+            total_rounds += test_method(r, 6)
         logging.warning("total_rounds: %s" % total_rounds)
 
     def do_ai_test(self, r, num_players):

@@ -1,6 +1,9 @@
 import logging
 import csv
-import util 
+import util
+import random
+from mutable import MutableList 
+from mutable import JSONEncodedList 
 from util import lowest_higher_than
 from util import reverse_map
 from util import ids
@@ -9,6 +12,12 @@ from errors import NotYourTurnError
 from errors import IllegalActionError
 from errors import NoSuchActionError
 from errors import FatalPlyusError 
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, backref
+
+
+Base = declarative_base()
 
 class Building(object):
 
@@ -595,13 +604,27 @@ class Referee:
 #TODO: refactor so referee is the only one who knows about random_gen
 #      make all gamestate methods more testable by injecting the randomly chosen
 #      items rather than doing the random choosing internally
-class GameState:
+class GameState(Base):
+    __tablename__ = 'gamestates'
+    id = Column(Integer, primary_key=True)
+    stage = Column(String)
+    players = relationship("Player", order_by="Player.position")
+    seed = Column(Integer) 
+    #building_card_deck
+    #buildings
+    num_players = Column(Integer)  
+    round_num = Column(Integer)
+    #round    
+    player_with_crown_token = Column(Integer)
+    winner = Column(Integer)
+
 
     def initialize_game(self, r, players, deck):
 
         self.stage = Stage.PRE_GAME
-        self.players = players
+        self.players[:] = players[:]
         self.random_gen = r
+#        self.seed = seed 
         self.building_card_deck = deck
         self.buildings = create_building_map(self.building_card_deck) 
         self.random_gen.shuffle(self.players)
@@ -609,7 +632,7 @@ class GameState:
 
         self.num_players = len(self.players)
 
-        for i,p in enumerate(players):
+        for i,p in enumerate(self.players):
             p.set_position(i) 
             #TODO:  replace magic number with actual number of cards in starting hand.
             p.buildings_in_hand.extend(util.draw_n(self.building_card_deck, 2)) 
@@ -718,7 +741,25 @@ class GameState:
 
 #TODO:  make sure we can't have 2 players with the same name.  or else
 # make sure we handle that case properly
-class Player:
+class Player(Base):
+
+    __tablename__ = 'players'
+
+    id = Column(Integer, primary_key=True)
+    gamestate_id = Column(Integer, ForeignKey(GameState.id), nullable = False) 
+    name = Column(String)
+    position = Column(Integer)
+    gold = Column(Integer)
+    buildings_on_table = Column(MutableList.as_mutable(JSONEncodedList))
+    buildings_in_hand = Column(MutableList.as_mutable(JSONEncodedList))
+    buildings_buffer = Column(MutableList.as_mutable(JSONEncodedList))
+    cur_role = Column(Integer)
+    roles = Column(MutableList.as_mutable(JSONEncodedList))
+    revealed_roles = Column(MutableList.as_mutable(JSONEncodedList))
+    rainbow_bonus = Column(Boolean)
+    first_to_eight_buildings = Column(Boolean)
+    points = Column(Integer)
+
     def __init__(self, n):
         self.name = n
         self.position = None
@@ -778,6 +819,6 @@ class Player:
 # right from sublime.
 # TODO:  figure out how to run tests easy without this here
 if __name__ == '__main__':
-#    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
     import unittest
     unittest.main(module='tests')

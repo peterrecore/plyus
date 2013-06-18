@@ -48,3 +48,6 @@ class Test(FrozenClass):
         self.y = 2**3
 
         self._freeze() # no new attributes after this point.
+
+commanderqvc
+operationqvc

@@ -622,7 +622,7 @@ class GameState(Base):
     def initialize_game(self, r, players, deck):
 
         self.stage = Stage.PRE_GAME
-        self.players[:] = players[:]
+        self.players = players
         self.random_gen = r
 #        self.seed = seed 
         self.building_card_deck = deck
@@ -632,7 +632,7 @@ class GameState(Base):
 
         self.num_players = len(self.players)
 
-        for i,p in enumerate(players):
+        for i,p in enumerate(self.players):
             p.set_position(i) 
             #TODO:  replace magic number with actual number of cards in starting hand.
             p.buildings_in_hand.extend(util.draw_n(self.building_card_deck, 2)) 

@@ -90,8 +90,8 @@ class TestAllTheThings(unittest.TestCase):
         r = random.Random(42)
         #counter = collections.Counter()
         total_rounds = 0
-#        test_method = self.do_ai_test_with_json
-        test_method = self.do_ai_test
+        test_method = self.do_ai_test_with_json
+        #test_method = self.do_ai_test
         for a in range(3):
             total_rounds += test_method(r, 2)
             total_rounds += test_method(r, 3)

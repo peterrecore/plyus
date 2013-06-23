@@ -6,7 +6,6 @@ from mutable import MutableList
 from mutable import JSONEncodedList 
 from util import lowest_higher_than
 from util import reverse_map
-from util import ids
 from collections import defaultdict
 from errors import NotYourTurnError
 from errors import IllegalActionError
@@ -18,6 +17,45 @@ from sqlalchemy.orm import relationship, backref
 
 
 Base = declarative_base()
+
+
+class BuildingDeck(Base):
+    __tablename__ = "buildingdecks"
+    id = Column(Integer,primary_key=True)
+    game_state_id = Column(Integer, ForeignKey("gamestates.id"))
+    template = Column(String)
+    cards = Column(MutableList.as_mutable(JSONEncodedList)) 
+    card_map = None
+    full_cards = None
+
+    def __init__(self, template):
+        """ template is a file name for now.  Might be a database id later """
+        self.template = template
+        self._construct_card_map()
+        self.cards = list(self.card_map.keys())
+
+    def _construct_card_map(self):
+
+        if self.full_cards is None:
+            self.full_cards = self._create_deck_from_csv(self.template) 
+
+        if self.card_map is None:
+            self.card_map = dict([(c.id,c) for c in self.full_cards]) 
+
+    def card_for_id(self, card_id):
+        if self.card_map is None:
+            self._construct_card_map()
+        return self.card_map[card_id]
+
+    def _create_deck_from_csv(self, filename):
+
+        def card_from_line(line):
+            return Building(int(line[0]), line[1], int(line[2]), line[3])
+
+        with open(filename, 'r') as myfile:
+            lines = csv.reader(myfile)
+            return [card_from_line(line) for line in lines]
+
 
 class Building(object):
 
@@ -37,21 +75,8 @@ class Building(object):
         if type(self) is type(other):
             return self.id == other.id
 
-    @staticmethod 
-    def create_deck_from_csv(filename):
-
-        def card_from_line(line):
-            return Building(int(line[0]), line[1], int(line[2]), line[3])
-
-        with open(filename, 'r') as myfile:
-            lines = csv.reader(myfile)
-            return [card_from_line(line) for line in lines]
 
 
-def create_building_map(buildings):
-    m = {}
-    m.update([(b.id, b) for b in buildings]) 
-    return m
 
 #Each game consists of several stages, progressing forward relentlessly
 # (no backsies or looping)
@@ -215,7 +240,7 @@ class Referee:
         for_player = self.game_state.players[player_index]
         d = {}
         d['game'] = self.game_state.to_dict_for_player(for_player)
-        d['me'] = for_player.to_dict_for_private()
+        d['me'] = for_player.to_dict_for_private(self.game_state.building_card_deck)
         j = util.to_json(d)
         return j 
 
@@ -281,7 +306,7 @@ class Referee:
             cur_player.gold += 1
             #TODO:  merchant getting a bonus gold needs to be an announced event
         if cur_player.cur_role == 7:
-            cards = util.draw_n(self.game_state.building_card_deck, 2)
+            cards = util.draw_n(self.game_state.building_card_deck.cards, 2)
             cur_player.buildings_in_hand.extend(cards)
             #TODO: announce player getting bonus cards
 
@@ -303,23 +328,24 @@ class Referee:
         target_id = action['target']
 
         if target_id != 'skip':
-            target = self.game_state.buildings[target_id]
 
-            if target in cur_player.buildings_on_table:
+            if target_id in cur_player.buildings_on_table:
                 logging.info("can't build 2 of same thing")
                 raise IllegalActionError()
 
-            if target not in cur_player.buildings_in_hand:
+            if target_id not in cur_player.buildings_in_hand:
                 logging.info("Can't build something not in your hand")
                 raise IllegalActionError()
+
+            target = self.game_state.building_card_deck.card_for_id(target_id)
 
             cost = target.cost
             if cost > cur_player.gold :
                 logging.info("not enough gold!")
                 raise IllegalActionError()
  
-            cur_player.buildings_in_hand.remove(target)
-            cur_player.buildings_on_table.append(target)
+            cur_player.buildings_in_hand.remove(target_id)
+            cur_player.buildings_on_table.append(target_id)
             cur_player.gold = cur_player.gold - cost
 
         #unless current role is 7, we only get one build so next step is finish
@@ -334,7 +360,7 @@ class Referee:
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.COINS_OR_BUILDING)
 
         self.pre_action_effects(cur_player)
-        cur_player.take_cards(self.game_state.building_card_deck)
+        cur_player.take_cards(self.game_state.building_card_deck.cards)
         self.game_state.step = Step.KEEP_CARD
         logging.info("possible cards are %s", cur_player.buildings_buffer)
 
@@ -351,10 +377,10 @@ class Referee:
             logging.error("trying to keep card that wasn't drawn")
             raise IllegalActionError()
 
-        target = cur_player.buildings_buffer[target_index]
-        cur_player.buildings_in_hand.append(target)
-        cur_player.buildings_buffer.remove(target)
-        self.game_state.building_card_deck.extend(cur_player.buildings_buffer)
+        target_id = cur_player.buildings_buffer[target_index]
+        cur_player.buildings_in_hand.append(target_id)
+        cur_player.buildings_buffer.remove(target_id)
+        self.game_state.building_card_deck.cards.extend(cur_player.buildings_buffer)
         self.post_action_effects(cur_player)
         self.game_state.step = Step.BUILD_BUILDING
 
@@ -443,7 +469,11 @@ class Referee:
 
         color = color_map[cur_plyr.cur_role]
 
-        num_color = sum(1 for d in cur_plyr.buildings_on_table if d.color == color)
+        deck = self.game_state.building_card_deck
+
+        cards_on_table = map(deck.card_for_id, cur_plyr.buildings_on_table)
+
+        num_color = sum(1 for c in cards_on_table if c.color == color)
         cur_plyr.gold += num_color
         logging.info("Player %s gained %s bonus gold" % (cur_plyr.name, num_color))
         self.game_state.round.has_taken_bonus[cur_plyr.position] = True
@@ -504,14 +534,13 @@ class Referee:
             discards = action['discards']    
 
             for d in discards:
-                b = self.game_state.buildings[d] 
-                if b not in hand:
+                if d not in hand:
                     raise IllegalActionError("Can't discard something \
-                        that's not in your hand: %s" % b)
-                hand.remove(b)
-                self.game_state.building_card_deck.append(b)
+                        that's not in your hand: %s" % d)
+                hand.remove(d)
+                self.game_state.building_card_deck.cards.append(d)
             n = len(discards)
-            replacements = util.draw_n(self.game_state.building_card_deck, n)
+            replacements = util.draw_n(self.game_state.building_card_deck.cards, n)
             hand.extend(replacements)
         else:
             #swap hands with someone else.  did it by copying contents instead of swapping actual
@@ -555,7 +584,6 @@ class Referee:
         if not 'target_card_id' in action:
            raise IllegalActionError("No target card specified")
         target_card_id = action['target_card_id']
-        target_card = self.game_state.buildings[target_card_id]
 
         if target_player_pos not in range(self.game_state.num_players):
            raise IllegalActionError("Invalid target: %s" % target_player_pos)   
@@ -569,18 +597,19 @@ class Referee:
             raise IllegalActionError("Not allowed to target player with role #5")
 
         logging.info("target_plyer is %s" % str(target_plyr))
-        logging.info("razing target is %s" % str(target_card))
-        if target_card not in target_plyr.buildings_on_table:
+        logging.info("razing target is %s" % str(target_card_id))
+        if target_card_id not in target_plyr.buildings_on_table:
             raise IllegalActionError("Target Player does not have target building")
 
 
+        target_card = self.game_state.building_card_deck.card_for_id(target_card_id)
         cost_to_raze = target_card.cost - 1
 
         if cost_to_raze > cur_plyr.gold:
             raise IllegalActionError("Not enough gold to destroy target building")
 
         cur_plyr.gold -= cost_to_raze
-        target_plyr.buildings_on_table.remove(target_card)
+        target_plyr.buildings_on_table.remove(target_card_id)
 
 
     def validate_phase_and_step(self, phase, *steps):
@@ -610,8 +639,7 @@ class GameState(Base):
     stage = Column(String)
     players = relationship("Player", order_by="Player.position")
     seed = Column(Integer) 
-    #building_card_deck
-    #buildings
+    building_card_deck = relationship(BuildingDeck, uselist=False)
     num_players = Column(Integer)  
     round_num = Column(Integer)
     #round    
@@ -619,23 +647,22 @@ class GameState(Base):
     winner = Column(Integer)
 
 
-    def initialize_game(self, r, players, deck):
+    def initialize_game(self, r, players, deck_template):
 
         self.stage = Stage.PRE_GAME
         self.players = players
         self.random_gen = r
 #        self.seed = seed 
-        self.building_card_deck = deck
-        self.buildings = create_building_map(self.building_card_deck) 
+        self.building_card_deck = BuildingDeck(deck_template)
         self.random_gen.shuffle(self.players)
-        self.random_gen.shuffle(self.building_card_deck)
+        self.random_gen.shuffle(self.building_card_deck.cards)
 
         self.num_players = len(self.players)
 
         for i,p in enumerate(self.players):
             p.set_position(i) 
             #TODO:  replace magic number with actual number of cards in starting hand.
-            p.buildings_in_hand.extend(util.draw_n(self.building_card_deck, 2)) 
+            p.buildings_in_hand.extend(util.draw_n(self.building_card_deck.cards, 2)) 
 
         self.round_num = -1
         self.round = Round(players, self.random_gen)
@@ -652,7 +679,7 @@ class GameState(Base):
         for k in fields_to_copy:
             d[k] = self.__dict__[k] 
 
-        d['players'] = [p.to_dict_for_public() for p in self.players]
+        d['players'] = [p.to_dict_for_public(self.building_card_deck) for p in self.players]
 
         r = self.round.to_dict_for_public()
 
@@ -718,7 +745,8 @@ class GameState(Base):
             basic_points = 0
             bonus_points = 0
             colors = {}
-            for d in p.buildings_on_table:
+            buildings = map(self.building_card_deck.card_for_id, p.buildings_on_table)
+            for d in buildings:
                 basic_points += d.points
                 colors[d.color] = True
 
@@ -779,39 +807,41 @@ class Player(Base):
         self.gold += 2
 
     #when current player chooses to draw cards
-    def take_cards(self, deck):
-        if len(deck) < 2:
+    def take_cards(self, cards):
+        if len(cards) < 2:
             #TODO: figure out and implement rule on reshuffling building cards 
             raise FatalPlyusError("Building deck is out of cards.")
-        self.buildings_buffer = util.draw_n(deck, 2)
+        self.buildings_buffer = util.draw_n(cards, 2)
 
     def set_position(self, i):
         self.position = i
 
     def __repr__(self):
         return "Player(name=%s, pos=%s, cur_role= %s, roles=%s, gold=%s, hand=%r, dists=%s)" % (self.name, 
-            self.position, self.cur_role, self.roles, self.gold, ids(self.buildings_in_hand),self.buildings_on_table)
+            self.position, self.cur_role, self.roles, self.gold, self.buildings_in_hand,self.buildings_on_table)
 
-    def to_dict_for_public(self):
+    def to_dict_for_public(self, deck):
         d = {}
-        fields_to_copy = ['name','position','gold','buildings_on_table',
-        'points','revealed_roles']
+        fields_to_copy = ['name','position','gold', 'points','revealed_roles']
 
         for k in fields_to_copy:
             d[k] = self.__dict__[k]
         
+        d['buildings_on_table'] = [deck.card_for_id(i) for i in self.buildings_on_table]
         d['num_cards_in_hand'] = len(self.buildings_in_hand)
 
         return d
 
 
-    def to_dict_for_private(self):
-        d = self.to_dict_for_public()
+    def to_dict_for_private(self, deck):
+        d = self.to_dict_for_public(deck)
 
-        fields_to_copy = ['buildings_in_hand','buildings_buffer', 'cur_role', 'roles']
+        fields_to_copy = ['cur_role', 'roles']
         for k in fields_to_copy:
             d[k] = self.__dict__[k]
        
+        d['buildings_in_hand'] = [deck.card_for_id(i) for i in self.buildings_in_hand]
+        d['buildings_buffer'] = [deck.card_for_id(i) for i in self.buildings_buffer]
         return d
 
 

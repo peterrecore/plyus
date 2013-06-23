@@ -18,10 +18,13 @@ class TestAllTheThings(unittest.TestCase):
         logging.warning("Warning level set.")
 
     def test_create_deck_from_file(self):
-        deck = Building.create_deck_from_csv('decks/deck_test_30.csv') 
-        self.assertEqual(len(deck), 30)
-        self.assertEqual(deck[2], Building(3,"green",2,"Fort Knox"))
-        self.assertEqual(deck[2].color, "green")
+        deck = BuildingDeck('decks/deck_test_30.csv')
+        self.assertEqual(len(deck.cards), 30)
+        self.assertEqual(deck.full_cards[2], Building(3,"green",2,"Fort Knox"))
+        self.assertEqual(deck.card_for_id(3), Building(3,"green",2,"Fort Knox"))
+        self.assertEqual(deck.card_for_id(3).color, "green")
+
+
 
     def test_draw(self):
         given = [1,2,3,4,5]
@@ -57,8 +60,7 @@ class TestAllTheThings(unittest.TestCase):
 
             r = random.Random(42)
             game = GameState()
-            deck = create_def_deck()
-            game.initialize_game(r, players,deck)
+            game.initialize_game(r, players,'decks/default.csv')
 
             ref = Referee(r, game)
 
@@ -109,9 +111,9 @@ class TestAllTheThings(unittest.TestCase):
            players.append(Player(n))
 
 
-        test_deck = Building.create_deck_from_csv('decks/deck_test_60.csv')
+        test_deck = Building.create_deck_from_csv()
         game = GameState()
-        game.initialize_game(r,players, deck=test_deck)
+        game.initialize_game(r,players, deck_template='decks/deck_test_60.csv')
         ref = Referee(r,game)
         num_steps = 100 * len(players)
 
@@ -142,9 +144,8 @@ class TestAllTheThings(unittest.TestCase):
            players.append(Player(n))
 
 
-        test_deck = Building.create_deck_from_csv('decks/deck_test_60.csv')
         game = GameState()
-        game.initialize_game(r,players, deck=test_deck)
+        game.initialize_game(r,players, deck_template='decks/deck_test_60.csv')
         ref = Referee(r,game)
 
         json = ref.get_current_state_as_json_for_player(game.cur_player_index)
@@ -319,9 +320,6 @@ class SimpleAIPlayer():
 
         d = {"player" : me.position , "action":a} 
         return d
-
-def create_def_deck():
-    return Building.create_deck_from_csv('decks/default.csv') 
 
 
 if __name__ == '__main__':

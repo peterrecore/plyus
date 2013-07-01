@@ -3,7 +3,8 @@ import csv
 import util
 import random
 from mutable import MutableList 
-from mutable import JSONEncodedList 
+from mutable import MutableDict 
+from mutable import JSONEncoded
 from util import lowest_higher_than
 from util import reverse_map
 from collections import defaultdict
@@ -24,7 +25,7 @@ class BuildingDeck(Base):
     id = Column(Integer,primary_key=True)
     game_state_id = Column(Integer, ForeignKey("gamestates.id"))
     template = Column(String)
-    cards = Column(MutableList.as_mutable(JSONEncodedList)) 
+    cards = Column(MutableList.as_mutable(JSONEncoded)) 
     card_map = None
     full_cards = None
 
@@ -93,6 +94,7 @@ class Phase:
 
 #The Play turn phase consists of several steps
 class Step:
+    NO_STEP = 'NO_STEP'
     COINS_OR_BUILDING = 'COINS_OR_BUILDING'
     KEEP_CARD = 'KEEP_CARD'
     MURDER = 'MURDER'
@@ -103,10 +105,23 @@ class Step:
     HIDE_ROLE = 'HIDE_ROLE' 
     FINISH = 'FINISH'
 
-class Round:
-    def __init__(self, players,random_gen):
+class Round(Base):
+    __tablename__ = 'rounds'
+    id = Column(Integer, primary_key=True)
+    players = relationship("Player", order_by="Player.position")
+    plyr_to_role_map = Column(MutableDict.as_mutable(JSONEncoded))    
+    role_to_plyr_map = Column(MutableDict.as_mutable(JSONEncoded))    
+    has_used_power = Column(MutableDict.as_mutable(JSONEncoded))    
+    has_taken_bonus = Column(MutableDict.as_mutable(JSONEncoded))    
+    num_seven_builds_left = Column(Integer)
+    dead_role = Column(Integer)
+    mugged_role = Column(Integer)
+
+    role_draw_pile = Column(MutableList.as_mutable(JSONEncoded))    
+    face_up_roles = Column(MutableList.as_mutable(JSONEncoded))    
+    face_down_roles = Column(MutableList.as_mutable(JSONEncoded))    
+    def __init__(self, players,rand_gen):
         self.players = players
-        self.random_gen = random_gen
 
         self.plyr_to_role_map = defaultdict(list) 
         self.role_to_plyr_map = {}
@@ -125,7 +140,7 @@ class Round:
 
         face_up_num, face_down_num = self.role_setup_for_n_players(len(players))
         self.role_draw_pile = [1,2,3,4,5,6,7,8]
-        random_gen.shuffle(self.role_draw_pile)
+        rand_gen.shuffle(self.role_draw_pile)
         self.face_up_roles = util.draw_n(self.role_draw_pile, face_up_num)
         self.face_down_roles = util.draw_n(self.role_draw_pile, face_down_num)
 
@@ -638,34 +653,37 @@ class GameState(Base):
     id = Column(Integer, primary_key=True)
     stage = Column(String)
     players = relationship("Player", order_by="Player.position")
-    seed = Column(Integer) 
+    base_seed = Column(Integer) 
     building_card_deck = relationship(BuildingDeck, uselist=False)
     num_players = Column(Integer)  
     round_num = Column(Integer)
+    cur_player_index = Column(Integer)
     #round    
     player_with_crown_token = Column(Integer)
     winner = Column(Integer)
 
 
-    def initialize_game(self, r, players, deck_template):
+    def initialize_game(self, base_seed, players, deck_template):
 
         self.stage = Stage.PRE_GAME
+        self.step = Step.NO_STEP
         self.players = players
-        self.random_gen = r
-#        self.seed = seed 
+        self.base_seed = base_seed 
         self.building_card_deck = BuildingDeck(deck_template)
-        self.random_gen.shuffle(self.players)
-        self.random_gen.shuffle(self.building_card_deck.cards)
+        self.cur_player_index = 0
+        self.round_num = -1
+        rand_gen = self.get_random_gen()
+        rand_gen.shuffle(self.players)
+        rand_gen.shuffle(self.building_card_deck.cards)
 
         self.num_players = len(self.players)
 
         for i,p in enumerate(self.players):
             p.set_position(i) 
             #TODO:  replace magic number with actual number of cards in starting hand.
-            p.buildings_in_hand.extend(util.draw_n(self.building_card_deck.cards, 2)) 
+            p.buildings_in_hand.extend(util.draw_n(self.building_card_deck.cards, 4)) 
 
-        self.round_num = -1
-        self.round = Round(players, self.random_gen)
+        self.round = Round(players, rand_gen)
         self.player_with_crown_token = 0 #this player gets to go first when picking a role
         self.stage = Stage.PLAYING
         self.start_new_round()
@@ -725,7 +743,7 @@ class GameState(Base):
 
     def start_new_round(self):
         logging.debug("starting new round")
-        self.round = Round(self.players, self.random_gen)
+        self.round = Round(self.players, self.get_random_gen())
         self.cur_player_index = self.player_with_crown_token
         self.phase = Phase.PICK_ROLES
         self.step = Step.PICK_ROLE
@@ -767,6 +785,15 @@ class GameState(Base):
         ranked_players = sorted(self.players, key=lambda p:p.ranking, reverse=True )
         self.winner = ranked_players[0].name
 
+    def get_random_gen(self):
+        cur_plyr = self.players[self.cur_player_index] 
+        seed = str(self.base_seed) + str(self.round_num * 117) + str(self.cur_player_index * 13) 
+
+        seed = seed + self.step
+        str(cur_plyr.name) + str(cur_plyr.buildings_in_hand)
+        return random.Random(seed)
+
+
 #TODO:  make sure we can't have 2 players with the same name.  or else
 # make sure we handle that case properly
 class Player(Base):
@@ -778,12 +805,12 @@ class Player(Base):
     name = Column(String)
     position = Column(Integer)
     gold = Column(Integer)
-    buildings_on_table = Column(MutableList.as_mutable(JSONEncodedList))
-    buildings_in_hand = Column(MutableList.as_mutable(JSONEncodedList))
-    buildings_buffer = Column(MutableList.as_mutable(JSONEncodedList))
+    buildings_on_table = Column(MutableList.as_mutable(JSONEncoded))
+    buildings_in_hand = Column(MutableList.as_mutable(JSONEncoded))
+    buildings_buffer = Column(MutableList.as_mutable(JSONEncoded))
     cur_role = Column(Integer)
-    roles = Column(MutableList.as_mutable(JSONEncodedList))
-    revealed_roles = Column(MutableList.as_mutable(JSONEncodedList))
+    roles = Column(MutableList.as_mutable(JSONEncoded))
+    revealed_roles = Column(MutableList.as_mutable(JSONEncoded))
     rainbow_bonus = Column(Boolean)
     first_to_eight_buildings = Column(Boolean)
     points = Column(Integer)

@@ -14,7 +14,7 @@ class Object(object):
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.INFO) 
+        logging.basicConfig(level=logging.WARNING) 
         logging.warning("Warning level set.")
 
     def test_create_deck_from_file(self):
@@ -173,7 +173,7 @@ class TestAllTheThings(unittest.TestCase):
             logging.debug("stage is %s" % stage)
             if stage == Stage.GAME_OVER :
                logging.warning("**********************************************")
-               logging.warning("******* Success, game over and %s won   ******" % json_game['winner']) 
+               logging.warning("******* Success, game over and %s won after %s rounds  ******" % (json_game['winner'],json_game['round_num'])) 
                json_players = json_game['players']
                for p in json_players:
                  logging.warning("Player %s had %s pts" % (p['name'], p['points']))

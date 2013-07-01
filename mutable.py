@@ -83,7 +83,7 @@ class MutableDict(Mutable, dict):
 
 
 
-class JSONEncodedList(TypeDecorator):
+class JSONEncoded(TypeDecorator):
     "Represents an immutable structure as a json-encoded string."
 
     impl = VARCHAR

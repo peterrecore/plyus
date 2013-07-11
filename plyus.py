@@ -108,6 +108,8 @@ class Step:
 class Round(Base):
     __tablename__ = 'rounds'
     id = Column(Integer, primary_key=True)
+    game_state_id = Column(Integer, ForeignKey('gamestates.id'))
+    game_state = Column() 
     players = relationship("Player", order_by="Player.position")
     plyr_to_role_map = Column(MutableDict.as_mutable(JSONEncoded))    
     role_to_plyr_map = Column(MutableDict.as_mutable(JSONEncoded))    
@@ -120,8 +122,9 @@ class Round(Base):
     role_draw_pile = Column(MutableList.as_mutable(JSONEncoded))    
     face_up_roles = Column(MutableList.as_mutable(JSONEncoded))    
     face_down_roles = Column(MutableList.as_mutable(JSONEncoded))    
-    def __init__(self, players,rand_gen):
-        self.players = players
+
+    def __init__(self, game_state):
+        self.game_state = game_state
 
         self.plyr_to_role_map = defaultdict(list) 
         self.role_to_plyr_map = {}
@@ -131,6 +134,7 @@ class Round(Base):
         self.dead_role = None
         self.mugged_role = None
 
+        players = game_state.players
 
         for p in players:
             self.has_used_power[p.position] = False
@@ -144,8 +148,8 @@ class Round(Base):
         self.face_up_roles = util.draw_n(self.role_draw_pile, face_up_num)
         self.face_down_roles = util.draw_n(self.role_draw_pile, face_down_num)
 
-    def mark_role_picked(self, role, player):
-        self.plyr_to_role_map[player].append(role)
+    def mark_role_picked(self, role, player_id):
+        self.plyr_to_role_map[player_id].append(role)
         self.role_to_plyr_map[role] = player
         self.role_draw_pile.remove(role)
 
@@ -164,7 +168,7 @@ class Round(Base):
 
         roles_picked = util.flatten(self.plyr_to_role_map.values())
         num_roles_picked = len(roles_picked)
-        num_players = len(self.players)
+        num_players = len(self.game_state.players)
 
         num_roles_per_player = 1
 
@@ -658,9 +662,9 @@ class GameState(Base):
     num_players = Column(Integer)  
     round_num = Column(Integer)
     cur_player_index = Column(Integer)
-    #round    
     player_with_crown_token = Column(Integer)
     winner = Column(Integer)
+    cur_round = relationship("Round", uselist=False, backref="game_state")
 
 
     def initialize_game(self, base_seed, players, deck_template):

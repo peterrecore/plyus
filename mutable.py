@@ -75,6 +75,15 @@ class MutableDict(Mutable, dict):
         dict.__setitem__(self, key, value)
         self.changed()
 
+    def __getitem__(self, key):
+        self.changed()
+        if key in self:
+            return dict.__getitem__(self, key)
+        s = str(key)
+        if s in self:
+            return dict.__getitem__(self, s)
+        raise KeyError("could not find %s even after trying conversion to str" % (key,))
+
     def __delitem__(self, key):
         "Detect dictionary del events and emit change events."
 

@@ -1,6 +1,7 @@
 import logging
 import json
 import itertools
+import errors
 
 def draw_n(some_list, n):
     if len(some_list) < n:
@@ -17,9 +18,13 @@ def reverse_map(m):
     reversed[v] = k
   return reversed
 
-def lowest_higher_than(list, x):
-    """Given a list, find the lowest element that is higher than n"""
-    for n in sorted(list):
+def lowest_higher_than(lst, x):
+    """Given a list, find the lowest int that is higher than n"""
+    for a in lst:
+        if not isinstance(a, int):
+            raise errors.FatalPlyusError("element wsa not an int")
+
+    for n in sorted(lst):
       if n > x: 
         return n
     return None
@@ -55,7 +60,7 @@ def dict_to_object(d):
     return inst
 
 def to_json(x):
-    j = json.dumps(x,default=convert_to_builtin_type, sort_keys=True,indent=2)
+    j = json.dumps(x,default=convert_to_builtin_type, sort_keys=True)#,indent=2)
     logging.debug("json output is %s" % j)
     return j
 

@@ -3,7 +3,6 @@ from plyus import *
 class Object(object):
     def __init__(self, d):
         self.__dict__ = d
-        
 class SimpleAIPlayer():
     def __init__(self, name):
         self.name = name
@@ -78,6 +77,7 @@ class SimpleAIPlayer():
 
     def ponder_pick_role(self, game, me):
         #pick the first role we see
+        logging.info("%s is picking a role, and game.round.role_draw_pile is : %s" % (me.name, game.round.role_draw_pile))
         my_role = game.round.role_draw_pile[0]
 
         #this method of choosing a good victim will be absoultely wrong

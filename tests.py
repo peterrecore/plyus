@@ -13,7 +13,7 @@ from simpleai import SimpleAIPlayer
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.WARNING) 
+        logging.basicConfig(level=logging.INFO) 
 #        logging.basicConfig(level=logging.WARNING) 
         logging.warning("Warning level set.")
 
@@ -58,9 +58,8 @@ class TestAllTheThings(unittest.TestCase):
         with self.assertRaises(NotYourTurnError):
             players = [fake_player("peter"), fake_player("manan")]
 
-            r = random.Random(42)
             game = GameState()
-            game.initialize_game(r, players,'decks/default.csv')
+            game.initialize_game(42, players,'decks/default.csv')
 
             ref = Referee(game)
 
@@ -88,16 +87,15 @@ class TestAllTheThings(unittest.TestCase):
             ref.perform_move(move)
 
     def test_multiple_simple_ai_tests(self):
-        seed = 42
         total_rounds = 0
         test_method = self.do_ai_test_with_json
         #test_method = self.do_ai_test
-        for a in range(3):
-            total_rounds += test_method(seed, 2)
-            total_rounds += test_method(seed, 3)
-            total_rounds += test_method(seed, 4)
-            total_rounds += test_method(seed, 5)
-            total_rounds += test_method(seed, 6)
+        for a in range(23):
+            total_rounds += test_method(a, 2)
+            # total_rounds += test_method(a, 3)
+            # total_rounds += test_method(a, 4)
+            # total_rounds += test_method(a, 5)
+            # total_rounds += test_method(a, 6)
         logging.warning("total_rounds: %s" % total_rounds)
 
     def do_ai_test(self, seed, num_players):

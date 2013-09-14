@@ -8,12 +8,11 @@ from plyus import *
 from sqlalchemy import create_engine, ForeignKey
 from sqlalchemy.orm import sessionmaker
 
-def create_memory_session():
+def create_session_maker():
     engine = create_engine('sqlite:///:memory:', echo=True)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
-    session = Session()
-    return session
+    return Session
 
 class TestSQL(unittest.TestCase):
     @classmethod
@@ -31,24 +30,28 @@ class TestSQL(unittest.TestCase):
         p1.gold = 32
         p1.take_cards(g.building_card_deck.cards)
 
-        session = create_memory_session()
+        session_maker = create_session_maker()
+        session = session_maker()
         session.add(g)
         session.commit()
 
         gs_id = g.id
+        session.close()
 
-        g_loaded = session.query(GameState).filter(GameState.id == gs_id).one()
+        new_session = session_maker()
 
-        self.assertEqual(g_loaded.base_seed, g.base_seed)
+        g_loaded = new_session.query(GameState).filter(GameState.id == gs_id).one()
+
+        g_loaded.get_random_gen()
+
+        self.assertEqual(g_loaded.base_seed, 42)
 
 
         p1_loaded = session.query(Player).filter(Player.name=='peter').one()
         p1_bad_copy = Player("peter")
-        self.assertEqual(p1.name, p1_loaded.name)
-        self.assertEqual(p1, p1_loaded)
-        self.assertNotEqual(p1,p1_bad_copy)
+        self.assertEqual("peter", p1_loaded.name)
+        self.assertNotEqual(p1_loaded,p1_bad_copy)
         self.assertEqual(len(p1_loaded.buildings_buffer), 2)
-        self.assertEqual(g_loaded.players[p1.position], p1)
 
 
 
@@ -57,7 +60,7 @@ class TestSQL(unittest.TestCase):
         """ BuildingDecks have some transient fields like full_cards and card_map.  this test
             ensures that these fields get properly recreated after a buildingdeck is loaded from the db"""
         deck = BuildingDeck('decks/deck_test_30.csv')
-        sess = create_memory_session()
+        sess = create_session_maker()()
         sess.add(deck)
         sess.commit()
         id = deck.id

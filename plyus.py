@@ -105,14 +105,21 @@ class Step:
     HIDE_ROLE = 'HIDE_ROLE' 
     FINISH = 'FINISH'
 
+
+class Role(Base):
+    __tablename__ = 'roles'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    num = Column(Integer)
+
+
+
+
+
 class Round(Base):
     __tablename__ = 'rounds'
     id = Column(Integer, primary_key=True)
     game_state_id = Column(Integer, ForeignKey('gamestates.id'))
-    game_state = Column() 
-    players = relationship("Player", order_by="Player.position")
-    plyr_to_role_map = Column(MutableDict.as_mutable(JSONEncoded))    
-    role_to_plyr_map = Column(MutableDict.as_mutable(JSONEncoded))    
     has_used_power = Column(MutableDict.as_mutable(JSONEncoded))    
     has_taken_bonus = Column(MutableDict.as_mutable(JSONEncoded))    
     num_seven_builds_left = Column(Integer)
@@ -123,11 +130,25 @@ class Round(Base):
     face_up_roles = Column(MutableList.as_mutable(JSONEncoded))    
     face_down_roles = Column(MutableList.as_mutable(JSONEncoded))    
 
+    def gen_plyr_to_role_map(self):
+        m = {}
+        for p in self.game_state.players:
+            l = []
+            l.extend(p.roles)
+            m[p.position] = l 
+        return m
+
+    def gen_role_to_plyr_map(self):
+        m = {}
+        for p in self.game_state.players:
+            for r in p.roles:
+                m[r] = p.position
+        return m
+
+
     def __init__(self, game_state):
         self.game_state = game_state
 
-        self.plyr_to_role_map = defaultdict(list) 
-        self.role_to_plyr_map = {}
         self.has_used_power = {}
         self.has_taken_bonus = {}
         self.num_seven_builds_left = 3
@@ -142,15 +163,23 @@ class Round(Base):
             p.roles = []
             p.cur_role = None
 
+
         face_up_num, face_down_num = self.role_setup_for_n_players(len(players))
         self.role_draw_pile = [1,2,3,4,5,6,7,8]
-        rand_gen.shuffle(self.role_draw_pile)
+        game_state.get_random_gen().shuffle(self.role_draw_pile)
         self.face_up_roles = util.draw_n(self.role_draw_pile, face_up_num)
         self.face_down_roles = util.draw_n(self.role_draw_pile, face_down_num)
 
     def mark_role_picked(self, role, player_id):
-        self.plyr_to_role_map[player_id].append(role)
-        self.role_to_plyr_map[role] = player
+        if player_id not in range(0,self.game_state.num_players):
+            raise FatalPlyusError("bad player-id")
+
+        logging.info("marking %s as picked by %s" % (role, player_id))
+
+        # logging.info("before appending, plyr_to_role_map is %s" % (repr(self.plyr_to_role_map)))
+        # self.plyr_to_role_map[player_id].append(role)
+        # logging.info("after appending, plyr_to_role_map is %s" % (repr(self.plyr_to_role_map)))
+        # self.role_to_plyr_map[role] = player_id
         self.role_draw_pile.remove(role)
 
     def role_setup_for_n_players(self, n):
@@ -166,7 +195,8 @@ class Round(Base):
         #if no player still needs to choose, we're done picking
         # easy case - if everyone has picked one role we're done
 
-        roles_picked = util.flatten(self.plyr_to_role_map.values())
+        roles_picked = util.flatten(self.gen_plyr_to_role_map().values())
+        logging.info("roles_picked is %s" % roles_picked)
         num_roles_picked = len(roles_picked)
         num_players = len(self.game_state.players)
 
@@ -179,7 +209,7 @@ class Round(Base):
 
     def __repr__(self):
         return "Round(draw:%s, up:%s, down:%s\n    plyr_to_role:%s  role_to_plyr:%s" % (self.role_draw_pile,
-            self.face_up_roles, self.face_down_roles, self.plyr_to_role_map, self.role_to_plyr_map)
+            self.face_up_roles, self.face_down_roles, self.gen_plyr_to_role_map(), self.gen_role_to_plyr_map())
 
     def to_dict_for_public(self):
         d = {}
@@ -191,9 +221,9 @@ class Round(Base):
         return d
 
 class Referee:
-    def __init__(self, rg, gs):
+    def __init__(self, gs):
         self.game_state = gs
-        self.random_gen = rg
+        self.random_gen = gs.get_random_gen()
         self.action_handlers = {
              'pick_role':self.handle_pick_role
             ,'hide_role':self.handle_hide_role
@@ -219,9 +249,14 @@ class Referee:
     # matches the player in the move.  This might need to happen
     # at a higher layer
     def perform_move(self, move):
+        logging.info("-- in round %s, move is {%s}" % (self.game_state.round_num, move))
+
         logging.debug('game_state is %s' % self.game_state)
 
         player_index = move['player']
+        if player_index not in range(0,self.game_state.num_players):
+            raise IllegalActionError("Not a valid player")
+
         player = self.game_state.players[player_index]
         action = move['action']
 
@@ -237,7 +272,7 @@ class Referee:
             raise NoSuchActionError(action["name"])
 
         # perform the action
-        cur_player = self.game_state.players[self.game_state.cur_player_index]
+        cur_player = self.game_state.get_cur_plyr()
         handler = self.action_handlers[action["name"]]
         handler(action,cur_player) 
 
@@ -250,7 +285,7 @@ class Referee:
                 self.game_state.stage = Stage.END_GAME
 
         new_cur_player = self.game_state.cur_player_index
-        logging.debug(" -- action handled.")
+        logging.debug(" -- move handled.")
       
         return self.get_current_state_as_json_for_player(new_cur_player)
 
@@ -284,10 +319,12 @@ class Referee:
         round = self.game_state.round
         cur_role = cur_player.cur_role
 
+        role_to_plyr_map = round.gen_role_to_plyr_map()
+
         logging.info("cur_player is %s, cur_role=%s" % (cur_player,cur_role))
-        next_role = lowest_higher_than(round.role_to_plyr_map.keys(), cur_role)  
+        next_role = lowest_higher_than(role_to_plyr_map.keys(), cur_role)  
         if next_role == round.dead_role:
-            next_role = lowest_higher_than(round.role_to_plyr_map.keys(), cur_role+1)  
+            next_role = lowest_higher_than(role_to_plyr_map.keys(), cur_role+1)  
 
         logging.info("next_role is %s  " % next_role)
         # if everyone has played, start a new round
@@ -299,9 +336,9 @@ class Referee:
         else:
             #figure out who the next player is, based on the next cur_role to play.
             #reset the step for that player.
-            next_player = round.role_to_plyr_map[next_role]
+            next_player = role_to_plyr_map[next_role]
             self.game_state.cur_player_index = next_player
-            self.cur_player_index = round.role_to_plyr_map[next_role]
+            self.cur_player_index = role_to_plyr_map[next_role]
             self.game_state.players[next_player].cur_role = next_role
             self.game_state.step = Step.COINS_OR_BUILDING
 
@@ -310,12 +347,13 @@ class Referee:
     # we will consider this equivalent to the "start of the turn"
     def pre_action_effects(self, cur_player):
         rnd = self.game_state.round
+
         cur_player.revealed_roles.append(cur_player.cur_role)
         if cur_player.cur_role == rnd.mugged_role:
            stolen = cur_player.gold 
            cur_player.gold = 0
-           mugger = rnd.role_to_plyr_map[2]
-           rnd.players[mugger].gold += stolen
+           mugger = rnd.gen_role_to_plyr_map()[2]
+           self.game_state.players[mugger].gold += stolen
            #TODO: announce gold was stolen
 
     #some things happen after a player "takes an action"
@@ -440,11 +478,12 @@ class Referee:
 
         cur_player.roles.append(target)
         round.mark_role_picked(target, cur_player.position)
+        role_to_plyr_map = round.gen_role_to_plyr_map()
 
         # handle 2 player special case
         # players must place a role card face down after their middle picks
         # to maintain uncertainty
-        num_roles_picked_so_far = len(round.role_to_plyr_map)
+        num_roles_picked_so_far = len(role_to_plyr_map)
         if (self.game_state.num_players == 2 and num_roles_picked_so_far in [2,3]):
             self.game_state.step = Step.HIDE_ROLE
             return
@@ -455,10 +494,10 @@ class Referee:
             # so figure out which role's turn it is, and set them
             # to be current player.
 
-            roles_in_play = util.flatten(round.plyr_to_role_map.values())
+            roles_in_play = util.flatten(round.gen_plyr_to_role_map().values())
 
             current_role = lowest_higher_than(roles_in_play,0)
-            cur_plyr_index =  round.role_to_plyr_map[current_role]
+            cur_plyr_index =  role_to_plyr_map[current_role]
             self.game_state.cur_player_index = cur_plyr_index
 
             self.game_state.players[cur_plyr_index].cur_role = current_role
@@ -632,7 +671,7 @@ class Referee:
 
 
     def validate_phase_and_step(self, phase, *steps):
-        if self.game_state.phase is not phase:
+        if self.game_state.phase != phase:
             logging.error("attempting action that requires phase %s, but current phase is %s" %
                 (phase, self.game_state.phase))
             raise IllegalActionError
@@ -656,6 +695,8 @@ class GameState(Base):
     __tablename__ = 'gamestates'
     id = Column(Integer, primary_key=True)
     stage = Column(String)
+    step = Column(String)
+    phase = Column(String)
     players = relationship("Player", order_by="Player.position")
     base_seed = Column(Integer) 
     building_card_deck = relationship(BuildingDeck, uselist=False)
@@ -664,7 +705,7 @@ class GameState(Base):
     cur_player_index = Column(Integer)
     player_with_crown_token = Column(Integer)
     winner = Column(Integer)
-    cur_round = relationship("Round", uselist=False, backref="game_state")
+    round = relationship("Round", uselist=False, backref="game_state")
 
 
     def initialize_game(self, base_seed, players, deck_template):
@@ -687,7 +728,7 @@ class GameState(Base):
             #TODO:  replace magic number with actual number of cards in starting hand.
             p.buildings_in_hand.extend(util.draw_n(self.building_card_deck.cards, 4)) 
 
-        self.round = Round(players, rand_gen)
+        self.round = Round(self)
         self.player_with_crown_token = 0 #this player gets to go first when picking a role
         self.stage = Stage.PLAYING
         self.start_new_round()
@@ -738,16 +779,16 @@ class GameState(Base):
         if self.stage == Stage.END_GAME:
             self.do_game_over_calculations()
             self.stage = Stage.GAME_OVER 
-        logging.debug("after end game check, stage is %s" % self.stage)
+        logging.info("after end game check, stage is %s" % self.stage)
         #if the konig was around, give that player the crown
-        m = self.round.role_to_plyr_map
+        m = self.round.gen_role_to_plyr_map()
         if 4 in m:
             #TODO:  announce which player now has the crown
             self.player_with_crown_token = m[4]
 
     def start_new_round(self):
-        logging.debug("starting new round")
-        self.round = Round(self.players, self.get_random_gen())
+        logging.info("starting new round")
+        self.round = Round(self)
         self.cur_player_index = self.player_with_crown_token
         self.phase = Phase.PICK_ROLES
         self.step = Step.PICK_ROLE
@@ -755,6 +796,9 @@ class GameState(Base):
 
         for p in self.players:
             p.revealed_roles = []
+
+    def get_cur_plyr(self):
+        return self.players[self.cur_player_index]
 
     # this should only be called at the end of a round, after
     # all players have taken their turn and we are in the
@@ -790,7 +834,7 @@ class GameState(Base):
         self.winner = ranked_players[0].name
 
     def get_random_gen(self):
-        cur_plyr = self.players[self.cur_player_index] 
+        cur_plyr = self.get_cur_plyr()
         seed = str(self.base_seed) + str(self.round_num * 117) + str(self.cur_player_index * 13) 
 
         seed = seed + self.step

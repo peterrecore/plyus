@@ -120,8 +120,8 @@ class Round(Base):
     __tablename__ = 'rounds'
     id = Column(Integer, primary_key=True)
     game_state_id = Column(Integer, ForeignKey('gamestates.id'))
-    has_used_power = Column(MutableDict.as_mutable(JSONEncoded))    
-    has_taken_bonus = Column(MutableDict.as_mutable(JSONEncoded))    
+    has_used_power = Column(MutableList.as_mutable(JSONEncoded))    
+    has_taken_bonus = Column(MutableList.as_mutable(JSONEncoded))    
     num_seven_builds_left = Column(Integer)
     dead_role = Column(Integer)
     mugged_role = Column(Integer)
@@ -149,8 +149,8 @@ class Round(Base):
     def __init__(self, game_state):
         self.game_state = game_state
 
-        self.has_used_power = {}
-        self.has_taken_bonus = {}
+        self.has_used_power = [] 
+        self.has_taken_bonus = [] 
         self.num_seven_builds_left = 3
         self.dead_role = None
         self.mugged_role = None
@@ -158,8 +158,8 @@ class Round(Base):
         players = game_state.players
 
         for p in players:
-            self.has_used_power[p.position] = False
-            self.has_taken_bonus[p.position] = False
+            self.has_used_power.append(False)
+            self.has_taken_bonus.append(False)
             p.roles = []
             p.cur_role = None
 
@@ -353,6 +353,7 @@ class Referee:
            stolen = cur_player.gold 
            cur_player.gold = 0
            mugger = rnd.gen_role_to_plyr_map()[2]
+           logging.info("Mugger[ %s ] has mugged [%s]" % (mugger, cur_player.name))
            self.game_state.players[mugger].gold += stolen
            #TODO: announce gold was stolen
 

@@ -13,8 +13,8 @@ from simpleai import SimpleAIPlayer
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.INFO) 
-#        logging.basicConfig(level=logging.WARNING) 
+#        logging.basicConfig(level=logging.DEBUG) 
+        logging.basicConfig(level=logging.WARNING) 
         logging.warning("Warning level set.")
 
     def test_create_deck_from_file(self):
@@ -90,11 +90,11 @@ class TestAllTheThings(unittest.TestCase):
         total_rounds = 0
         test_method = self.do_ai_test_with_json
         #test_method = self.do_ai_test
-        for a in range(23):
-            total_rounds += test_method(a, 2)
-            # total_rounds += test_method(a, 3)
+        for a in range(20):
+            #total_rounds += test_method(a, 2)
+            total_rounds += test_method(a, 3)
             # total_rounds += test_method(a, 4)
-            # total_rounds += test_method(a, 5)
+            total_rounds += test_method(a, 5)
             # total_rounds += test_method(a, 6)
         logging.warning("total_rounds: %s" % total_rounds)
 

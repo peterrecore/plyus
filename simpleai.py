@@ -89,22 +89,11 @@ class SimpleAIPlayer():
 
 
     def decide_what_to_do_json(self, some_json):
-        def convert_to_int_keys(d):
-            for k,v in d.items():
-                d[int(k)] = v
-                del d[k]
-
-
         d = some_json['game']
         game = Object(d)
 
         r = Object(game.round)
         game.round = r
-
-        #conversion here is needed because json turned the integer keys into
-        #strings, but we still want ints
-        convert_to_int_keys(r.has_taken_bonus)
-        convert_to_int_keys(r.has_used_power)
 
         for p in game.players:
             logging.debug("p is ### %s ###" % p)

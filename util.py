@@ -61,7 +61,7 @@ def dict_to_object(d):
 
 def to_json(x):
     j = json.dumps(x,default=convert_to_builtin_type, sort_keys=True)#,indent=2)
-    logging.debug("json output is %s" % j)
+    #logging.debug("json output is %s" % j)
     return j
 
 def from_json(s):

@@ -18,7 +18,7 @@ def create_session_maker():
 class IntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.INFO) 
+        logging.basicConfig(level=logging.WARNING) 
         logging.warning("info level set.")
         logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING) 
 

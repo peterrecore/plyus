@@ -1,5 +1,5 @@
 from plyus import *
-
+from plyus.misc import *
 class Object(object):
     def __init__(self, d):
         self.__dict__ = d
@@ -32,9 +32,9 @@ class SimpleAIPlayer():
     def ponder_build_building(self, game, me):
         dists = me.buildings_in_hand
         if len(dists) >= 1:
-            cost = dists[0].cost
+            cost = dists[0]['cost']
             if me.gold >= cost:
-                t = dists[0].id
+                t = dists[0]['id']
                 return {"name":"build_building", "target":t}
 
         return {"name":"build_building","target": "skip"}
@@ -52,7 +52,7 @@ class SimpleAIPlayer():
         if me.cur_role == 3:
             discard = []
             if len(me.buildings_in_hand) >= 1:
-                discard.append(me.buildings_in_hand[0].id)
+                discard.append(me.buildings_in_hand[0]['id'])
                 return {"name":"use_power","target":"deck", "discards":discard}
             #if we have no cards, arbitrarily shaft the player after us.
             victim_pos = (me.position + 1) % game.num_players
@@ -63,11 +63,11 @@ class SimpleAIPlayer():
             logging.debug("razing victim is %s" % victim)
             potential_target = None
             if 0 < len(victim.buildings_on_table) < 8:
-                potential_target = sorted(victim.buildings_on_table, key=lambda d:d.cost)[0]
+                potential_target = sorted(victim.buildings_on_table, key=lambda d:d['cost'])[0]
             if (potential_target and
-               potential_target.cost <= me.gold and
+               potential_target['cost'] <= me.gold and
                5 not in victim.revealed_roles):
-                return {"name":"use_power","target_player_id":victim.position, "target_card_id":potential_target.id}
+                return {"name":"use_power","target_player_id":victim.position, "target_card_id":potential_target['id']}
 
         return {"name":"finish"}
 

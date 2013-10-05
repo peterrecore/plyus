@@ -1,9 +1,10 @@
 import logging
 import util
-from mutable import MutableList 
-from mutable import JSONEncoded
-from util import lowest_higher_than
-from errors import FatalPlyusError 
+from plyus.misc import Base
+from plyus.mutable import MutableList 
+from plyus.mutable import JSONEncoded
+from plyus.util import lowest_higher_than
+from plyus.errors import FatalPlyusError 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref

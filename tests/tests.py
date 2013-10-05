@@ -3,8 +3,11 @@ import json
 import random
 import logging
 import collections
-from util import *
-from plyus import *
+from plyus.util import *
+from plyus.player import Player 
+from plyus.referee import Referee
+from plyus.gamestate import GameState
+from plyus.misc import Phase, Stage
 from simpleai import SimpleAIPlayer
 
 
@@ -145,7 +148,7 @@ class TestAllTheThings(unittest.TestCase):
         ref = Referee(game)
 
         json = ref.get_current_state_as_json_for_player(game.cur_player_index)
-        parsed_json = util.from_json(json) 
+        parsed_json = from_json(json) 
         json_game = parsed_json['game']
 
         game = None #force ourselves to use json from now on, and fail fast if
@@ -161,7 +164,7 @@ class TestAllTheThings(unittest.TestCase):
             cur_ai = ais[cur_plyr['name']]
             move = cur_ai.decide_what_to_do_json(parsed_json)
             json = ref.perform_move(move)
-            parsed_json = util.from_json(json)
+            parsed_json = from_json(json)
             json_game = parsed_json['game']
             stage = json_game['stage']
             if stage not in [Stage.GAME_OVER, Stage.END_GAME, Stage.PLAYING]:

@@ -2,16 +2,16 @@ import logging
 import csv
 import util
 import random
-from mutable import MutableList 
-from mutable import MutableDict 
-from mutable import JSONEncoded
-from util import lowest_higher_than
-from util import reverse_map
 from collections import defaultdict
-from errors import NotYourTurnError
-from errors import IllegalActionError
-from errors import NoSuchActionError
-from errors import FatalPlyusError 
+from plyus.mutable import MutableList 
+from plyus.mutable import MutableDict 
+from plyus.mutable import JSONEncoded
+from plyus.util import lowest_higher_than
+from plyus.util import reverse_map
+from plyus.errors import NotYourTurnError
+from plyus.errors import IllegalActionError
+from plyus.errors import NoSuchActionError
+from plyus.errors import FatalPlyusError 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
@@ -108,12 +108,3 @@ class Role(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     num = Column(Integer)
-
-
-# this is sort of a hack for now, to make it convenient to run tests
-# right from sublime.
-# TODO:  figure out how to run tests easy without this here
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    import unittest
-    unittest.main(module='tests')

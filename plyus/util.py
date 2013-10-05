@@ -3,6 +3,7 @@ import json
 import itertools
 import errors
 
+
 def draw_n(some_list, n):
     if len(some_list) < n:
       raise ValueError("trying to draw %s elements from a list of len %s" % (n, len(some_list)))
@@ -50,8 +51,11 @@ def convert_to_builtin_type(obj):
 def dict_to_object(d):
     if '__class__' in d:
         class_name = d.pop('__class__')
+
         module_name = d.pop('__module__')
+        logging.debug("class is %s and module is %s" % (class_name, module_name))
         module = __import__(module_name)
+        logging.debug("module is %s" % module)
         class_ = getattr(module, class_name)
         args = dict( (key.encode('ascii'), value) for key, value in d.items())
         inst = class_(**args)
@@ -65,6 +69,6 @@ def to_json(x):
     return j
 
 def from_json(s):
-    d = json.loads(s, object_hook=dict_to_object)
+    d = json.loads(s)
     logging.debug("json loading type %s" % type(d)) 
     return d

@@ -1,1 +1,4 @@
 *.pyc
+plyus.sublime-project
+plyus.sublime-workspace
+./bin/*

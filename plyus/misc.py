@@ -3,6 +3,7 @@ import csv
 import util
 import random
 from collections import defaultdict
+from plyus import db
 from plyus.mutable import MutableList 
 from plyus.mutable import MutableDict 
 from plyus.mutable import JSONEncoded
@@ -12,20 +13,14 @@ from plyus.errors import NotYourTurnError
 from plyus.errors import IllegalActionError
 from plyus.errors import NoSuchActionError
 from plyus.errors import FatalPlyusError 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
+from flask.ext.sqlalchemy import SQLAlchemy
 
-
-Base = declarative_base()
-
-
-class BuildingDeck(Base):
+class BuildingDeck(db.Model):
     __tablename__ = "buildingdecks"
-    id = Column(Integer,primary_key=True)
-    game_state_id = Column(Integer, ForeignKey("gamestates.id"))
-    template = Column(String)
-    cards = Column(MutableList.as_mutable(JSONEncoded)) 
+    id = db.Column(db.Integer,primary_key=True)
+    game_state_id = db.Column(db.Integer, db.ForeignKey("gamestates.id"))
+    template = db.Column(db.String)
+    cards = db.Column(MutableList.as_mutable(JSONEncoded)) 
     card_map = None
     full_cards = None
 
@@ -103,8 +98,8 @@ class Step:
     FINISH = 'FINISH'
 
 
-class Role(Base):
+class Role(db.Model):
     __tablename__ = 'roles'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    num = Column(Integer)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    num = db.Column(db.Integer)

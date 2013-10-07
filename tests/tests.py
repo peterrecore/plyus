@@ -7,7 +7,7 @@ from plyus.util import *
 from plyus.player import Player 
 from plyus.referee import Referee
 from plyus.gamestate import GameState
-from plyus.misc import Phase, Stage
+from plyus.misc import Phase, Stage, Stage
 from simpleai import SimpleAIPlayer
 
 

@@ -3,29 +3,26 @@ import util
 import random
 from plyus.misc import *
 from plyus.round import Round 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
-
+from plyus import db
 
 #TODO: refactor so referee is the only one who knows about random_gen
 #      make all gamestate methods more testable by injecting the randomly chosen
 #      items rather than doing the random choosing internally
-class GameState(Base):
+class GameState(db.Model):
     __tablename__ = 'gamestates'
-    id = Column(Integer, primary_key=True)
-    stage = Column(String)
-    step = Column(String)
-    phase = Column(String)
-    players = relationship("Player", order_by="Player.position")
-    base_seed = Column(Integer) 
-    building_card_deck = relationship(BuildingDeck, uselist=False)
-    num_players = Column(Integer)  
-    round_num = Column(Integer)
-    cur_player_index = Column(Integer)
-    player_with_crown_token = Column(Integer)
-    winner = Column(Integer)
-    round = relationship("Round", uselist=False, backref="game_state")
+    id = db.Column(db.Integer, primary_key=True)
+    stage = db.Column(db.String)
+    step = db.Column(db.String)
+    phase = db.Column(db.String)
+    players = db.relationship("Player", order_by="Player.position")
+    base_seed = db.Column(db.Integer) 
+    building_card_deck = db.relationship(BuildingDeck, uselist=False)
+    num_players = db.Column(db.Integer)  
+    round_num = db.Column(db.Integer)
+    cur_player_index = db.Column(db.Integer)
+    player_with_crown_token = db.Column(db.Integer)
+    winner = db.Column(db.Integer)
+    round = db.relationship("Round", uselist=False, backref="game_state")
 
 
     def initialize_game(self, base_seed, players, deck_template):

@@ -3,8 +3,11 @@ import json
 import random
 import logging
 import collections
-from util import *
-from plyus import *
+from plyus.util import *
+from plyus.misc import *
+from plyus.player import Player 
+from plyus.gamestate import GameState 
+from plyus.referee import Referee 
 from simpleai import SimpleAIPlayer
 from sqlalchemy import create_engine, ForeignKey
 from sqlalchemy.orm import sessionmaker

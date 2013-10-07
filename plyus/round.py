@@ -1,29 +1,25 @@
 import logging
 import util
-from plyus.misc import Base
 from plyus.mutable import MutableList 
 from plyus.mutable import JSONEncoded
 from plyus.util import lowest_higher_than
 from plyus.errors import FatalPlyusError 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
+from plyus import db
 
 
-
-class Round(Base):
+class Round(db.Model):
     __tablename__ = 'rounds'
-    id = Column(Integer, primary_key=True)
-    game_state_id = Column(Integer, ForeignKey('gamestates.id'))
-    has_used_power = Column(MutableList.as_mutable(JSONEncoded))    
-    has_taken_bonus = Column(MutableList.as_mutable(JSONEncoded))    
-    num_seven_builds_left = Column(Integer)
-    dead_role = Column(Integer)
-    mugged_role = Column(Integer)
+    id = db.Column(db.Integer, primary_key=True)
+    game_state_id = db.Column(db.Integer, db.ForeignKey('gamestates.id'))
+    has_used_power = db.Column(MutableList.as_mutable(JSONEncoded))    
+    has_taken_bonus = db.Column(MutableList.as_mutable(JSONEncoded))    
+    num_seven_builds_left = db.Column(db.Integer)
+    dead_role = db.Column(db.Integer)
+    mugged_role = db.Column(db.Integer)
 
-    role_draw_pile = Column(MutableList.as_mutable(JSONEncoded))    
-    face_up_roles = Column(MutableList.as_mutable(JSONEncoded))    
-    face_down_roles = Column(MutableList.as_mutable(JSONEncoded))    
+    role_draw_pile = db.Column(MutableList.as_mutable(JSONEncoded))    
+    face_up_roles = db.Column(MutableList.as_mutable(JSONEncoded))    
+    face_down_roles = db.Column(MutableList.as_mutable(JSONEncoded))    
 
     def gen_plyr_to_role_map(self):
         m = {}

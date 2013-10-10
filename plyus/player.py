@@ -5,30 +5,28 @@ from plyus.mutable import MutableList
 from plyus.mutable import JSONEncoded
 from plyus.util import draw_n
 from plyus.errors import FatalPlyusError 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, backref
+from plyus import db
 
 #TODO:  make sure we can't have 2 players with the same name.  or else
 # make sure we handle that case properly
-class Player(Base):
+class Player(db.Model):
 
     __tablename__ = 'players'
 
-    id = Column(Integer, primary_key=True)
-    gamestate_id = Column(Integer, ForeignKey(GameState.id), nullable = False) 
-    name = Column(String)
-    position = Column(Integer)
-    gold = Column(Integer)
-    buildings_on_table = Column(MutableList.as_mutable(JSONEncoded))
-    buildings_in_hand = Column(MutableList.as_mutable(JSONEncoded))
-    buildings_buffer = Column(MutableList.as_mutable(JSONEncoded))
-    cur_role = Column(Integer)
-    roles = Column(MutableList.as_mutable(JSONEncoded))
-    revealed_roles = Column(MutableList.as_mutable(JSONEncoded))
-    rainbow_bonus = Column(Boolean)
-    first_to_eight_buildings = Column(Boolean)
-    points = Column(Integer)
+    id = db.Column(db.Integer, primary_key=True)
+    gamestate_id = db.Column(db.Integer, db.ForeignKey(GameState.id), nullable = False) 
+    name = db.Column(db.String)
+    position = db.Column(db.Integer)
+    gold = db.Column(db.Integer)
+    buildings_on_table = db.Column(MutableList.as_mutable(JSONEncoded))
+    buildings_in_hand = db.Column(MutableList.as_mutable(JSONEncoded))
+    buildings_buffer = db.Column(MutableList.as_mutable(JSONEncoded))
+    cur_role = db.Column(db.Integer)
+    roles = db.Column(MutableList.as_mutable(JSONEncoded))
+    revealed_roles = db.Column(MutableList.as_mutable(JSONEncoded))
+    rainbow_bonus = db.Column(db.Boolean)
+    first_to_eight_buildings = db.Column(db.Boolean)
+    points = db.Column(db.Integer)
 
     def __init__(self, n):
         self.name = n

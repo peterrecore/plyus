@@ -8,5 +8,5 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
 db = SQLAlchemy(app)
 
-from plyus import misc, gamestate, round 
+from plyus import misc, gamestate, round, player 
 from plyus import webapp

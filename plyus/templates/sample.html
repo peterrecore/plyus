@@ -1,0 +1,15 @@
+<html>
+  <head>
+    {% if title %}
+    <title>{{title}} - microblog</title>
+    {% else %}
+    <title>microblog</title>
+    {% endif %}
+  </head>
+  <body>
+    <h1>Hi!</h1>
+    {% for game in games %}
+    <p>{{game.id}} <b>{{game.stage}}</b></p>
+    {% endfor %}
+  </body>
+</html>

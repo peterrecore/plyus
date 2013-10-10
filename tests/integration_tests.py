@@ -12,11 +12,10 @@ from simpleai import SimpleAIPlayer
 from sqlalchemy import create_engine, ForeignKey
 from sqlalchemy.orm import sessionmaker
 
+from plyus import db
+
 def create_session_maker():
-    engine = create_engine('sqlite:///:memory:')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    return Session
+    return db.create_scoped_session
 
 class IntegrationTests(unittest.TestCase):
     @classmethod

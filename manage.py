@@ -15,6 +15,9 @@ def create_db():
     from plyus import db
     db.create_all()
 
+@manager.command
+def run():
+   app.run(debug = True) 
 
 if __name__ == "__main__":
     manager.run()

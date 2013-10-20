@@ -2,7 +2,7 @@ import unittest
 import json
 import random
 import logging
-import util
+import plyus.util as util
 
 class Foo(object):
     def __init__(self,prop1, prop2,prop3):
@@ -53,9 +53,8 @@ class TestAllTheThings(unittest.TestCase):
         f_as_string = unicode('{"__class__": "Foo", "__module__": "test_util", "prop1": "peter", "prop2": "purple", "prop3": 23}')
         self.assertEqual(s,f_as_string) 
         f2 = util.from_json(s)
-        print f.__dict__ , f.__module__, f.__class__
-        print f2.__dict__, f2.__module__, f2.__class__
-        self.assertEquals(f,f2)
+        for k in ['prop1', 'prop2', 'prop3']:
+            self.assertEquals(f.__dict__[k],f2[k])
 
     def test_flatten(self):
         xss = [[1], [2,3],[], [4,5,6]]

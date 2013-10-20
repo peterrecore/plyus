@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Game {{game.id}}</h1>
+    Current Stage: {{game.stage}}</br>
+    Current Phase: {{game.phase}}</br>
+    Current Step:  {{game.step}}</br>
+    Current Player: {{game.cur_player_index}}
+    <h2>Face Up Roles</h2>
+    {% for role in game.round.face_up_roles%}
+       <p>{{role}}</p>
+    {% endfor %}
+    <h2>Cards in Building Card Deck: {{game.building_card_deck_len}}</h2>
+    
+    <div> </div> 
+      {% for player in game.players %}
+        <h3>{{player.name}} ({{player.num_cards_in_hand}} cards in hand)
+        {% if game.player_with_crown_token == player.position %}
+         (has crown token)
+         {% endif %}</h3>
+        <table><tr><td>Name</td><td>Points</td><td>Cost</td><td>Color</td></tr>
+        {%for building in player.buildings_on_table %}
+          <tr><td>{{building.name}}</td>
+              <td>{{building.points}}</td>
+              <td>{{building.cost}}</td>
+              <td>{{building.color}}</td></tr>
+        {% endfor %}
+        </table>
+      {% endfor %}
+{% endblock %}

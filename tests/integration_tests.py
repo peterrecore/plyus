@@ -1,18 +1,17 @@
 import unittest
-import json
-import random
 import logging
-import collections
-from plyus.util import *
-from plyus.misc import *
-from plyus.player import Player 
-from plyus.gamestate import GameState 
-from plyus.referee import Referee 
-from simpleai import SimpleAIPlayer
-from sqlalchemy import create_engine, ForeignKey
-from sqlalchemy.orm import sessionmaker
 
+import config
+
+import plyus
+plyus.create_flask_app(config.test)
 from plyus import db
+
+from plyus.misc import *
+from plyus.player import Player
+from plyus.gamestate import GameState
+from plyus.referee import Referee
+from simpleai import SimpleAIPlayer
 
 def create_session_maker():
     return db.create_scoped_session
@@ -22,7 +21,9 @@ class IntegrationTests(unittest.TestCase):
     def setUpClass(cls):
         logging.basicConfig(level=logging.WARNING) 
         logging.warning("info level set.")
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING) 
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+        db.drop_all()
+        db.create_all()
 
     def test_two_players_simpleai(self):
         self.do_one_test(0, 2)

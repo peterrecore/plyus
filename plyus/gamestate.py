@@ -55,9 +55,12 @@ class GameState(db.Model):
         d = {}
         fields_to_copy = ['round_num','player_with_crown_token','stage',
                           'phase','step','cur_player_index','num_players',
-                          'winner', 'id']
+                          'winner']
         for k in fields_to_copy:
             d[k] = self.__dict__[k] 
+
+        if self.id:
+            d['id'] = self.id
 
         d['players'] = [p.to_dict_for_public(self.building_card_deck) for p in self.players]
         d['building_card_deck_len'] = len(self.building_card_deck.cards)

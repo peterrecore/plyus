@@ -1,5 +1,5 @@
 import logging
-from plyus.gamestate import GameState 
+from plyus.gamestate import GameState
 from plyus.misc import *
 from plyus.mutable import MutableList 
 from plyus.mutable import JSONEncoded
@@ -14,7 +14,7 @@ class Player(db.Model):
     __tablename__ = 'players'
 
     id = db.Column(db.Integer, primary_key=True)
-    gamestate_id = db.Column(db.Integer, db.ForeignKey(GameState.id), nullable = False) 
+    gamestate_id = db.Column(db.Integer, db.ForeignKey(GameState.id), nullable = False)
     name = db.Column(db.String)
     position = db.Column(db.Integer)
     gold = db.Column(db.Integer)

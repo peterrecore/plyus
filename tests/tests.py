@@ -68,7 +68,7 @@ class TestAllTheThings(unittest.TestCase):
 
             ref = Referee(game)
 
-            with open("moves.json") as f:
+            with open("tests/moves.json") as f:
                 move_sets = json.loads(f.read())
 
             moves = move_sets["wrong_turn"]

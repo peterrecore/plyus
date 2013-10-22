@@ -1,6 +1,5 @@
 import unittest
 import json
-import random
 import logging
 import plyus.util as util
 

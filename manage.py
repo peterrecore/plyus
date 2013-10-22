@@ -1,13 +1,10 @@
 #!python
 from flask.ext import script
-from plyus import app
+import plyus
+import config
 
-manager = script.Manager(app)
-
-@manager.command
-def hello():
-    "say hello" 
-    print "hello"
+plyus.create_flask_app(config.dev)
+manager = script.Manager(plyus.app)
 
 
 @manager.command
@@ -17,7 +14,7 @@ def create_db():
 
 @manager.command
 def run():
-   app.run(debug = True) 
+   plyus.app.run(debug = True)
 
 if __name__ == "__main__":
     manager.run()

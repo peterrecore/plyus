@@ -11,11 +11,11 @@ app = None
 lm = None
 oid = None
 
-def create_flask_app(config):
+def create_flask_app(my_config):
     global app, db, lm, oid
 
     app = Flask(__name__)
-    app.config.from_object(config)
+    app.config.update(my_config)
 
     db = SQLAlchemy(app)
     lm = LoginManager()

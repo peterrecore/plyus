@@ -14,10 +14,10 @@ test.update(global_config)
 test.update( { 'SQLALCHEMY_DATABASE_URI' : 'sqlite://'} ) # this is sqlalchemy's syntax for an in memory sqlite3 db
 
 
-db_uri = 'sqlite:///' + basedir + 'tmp/dev.db'
+db_uri = 'sqlite:///' + basedir + '/tmp/dev.db'
 dev = {}
 dev.update(global_config)
-dev.update(  {'SQLALCHEMY_DATABASE_URI':db_uri})
+dev.update(  {'SQLALCHEMY_DATABASE_URI': db_uri})
 
 
 

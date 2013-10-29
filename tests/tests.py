@@ -53,8 +53,9 @@ class TestAllTheThings(unittest.TestCase):
 
     def test_create_round(self):
         players = [fake_player("Peter"),fake_player("Manan")]
-        game = GameState()
-        game.initialize_game(42, players, "decks/deck_test_30.csv")
+        game = GameState(42, players[0], 2, deck_template="decks/deck_test_30.csv")
+        game.add_player(players[1])
+        game.start_game()
         r = Round(game)
 
         self.assertEqual(len(r.face_up_roles), 0)
@@ -65,10 +66,10 @@ class TestAllTheThings(unittest.TestCase):
     # we expect an Error.
     def test_wrong_turn(self):
         with self.assertRaises(NotYourTurnError):
-            players = [fake_player("peter"), fake_player("manan")]
-
-            game = GameState()
-            game.initialize_game(42, players,'decks/default.csv')
+            players = [fake_player("Peter"),fake_player("Manan")]
+            game = GameState(42, players[0], 2, deck_template='decks/default.csv')
+            game.add_player(players[1])
+            game.start_game()
 
             ref = Referee(game)
 
@@ -116,9 +117,10 @@ class TestAllTheThings(unittest.TestCase):
            players.append(Player(n))
 
 
-        test_deck = Building.create_deck_from_csv()
-        game = GameState()
-        game.initialize_game(seed,players, deck_template='decks/deck_test_60.csv')
+        game = GameState(seed, players[0], num_players, deck_template='decks/deck_test_60.csv')
+        for p in players[1:num_players]:
+            game.add_player(p)
+        game.start_game()
         ref = Referee(game)
         num_steps = 100 * len(players)
 
@@ -149,8 +151,11 @@ class TestAllTheThings(unittest.TestCase):
            players.append(Player(n))
 
 
-        game = GameState()
-        game.initialize_game(seed,players, deck_template='decks/deck_test_60.csv')
+        game = GameState(seed,players[0], num_players,  deck_template='decks/deck_test_60.csv')
+        for p in players[1:num_players]:
+            game.add_player(p)
+        game.start_game()
+
         ref = Referee(game)
 
         json = ref.get_current_state_as_json_for_player(game.cur_player_index)

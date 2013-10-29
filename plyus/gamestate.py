@@ -4,6 +4,7 @@ import random
 from plyus.misc import *
 from plyus.round import Round 
 from plyus import db
+from plyus.errors import FatalPlyusError
 
 #TODO: refactor so referee is the only one who knows about random_gen
 #      make all gamestate methods more testable by injecting the randomly chosen
@@ -23,22 +24,44 @@ class GameState(db.Model):
     player_with_crown_token = db.Column(db.Integer)
     winner = db.Column(db.Integer)
     round = db.relationship("Round", uselist=False, backref="game_state")
+    created_by = db.relationship("Player", uselist=False)
 
-
-    def initialize_game(self, base_seed, players, deck_template):
-
+    def __init__(self, base_seed, created_by, num_players, deck_template=None):
         self.stage = Stage.PRE_GAME
         self.step = Step.NO_STEP
-        self.players = players
-        self.base_seed = base_seed 
+        self.base_seed = base_seed
+        if deck_template is None:
+            deck_template = 'decks/deck_test_60.csv'
         self.building_card_deck = BuildingDeck(deck_template)
-        self.cur_player_index = 0
         self.round_num = -1
+
+        self.num_players = num_players
+
+        self.players = [created_by]
+        self.winner = None
+
+    def add_player(self,player):
+        if self.stage <> Stage.PRE_GAME:
+            raise FatalPlyusError("Can't add players except in stage PRE_GAME")
+        if len(self.players) >= self.num_players:
+            raise FatalPlyusError("Game already has %s players." % self.num_players)
+
+        self.players.append(player)
+
+
+    def start_game(self):
+
+        if len(self.players) < self.num_players:
+            logging.error("trying to start game %s with only %s players, but expecting %s players" % (self.id, len(self.players),self.num_players))
+            raise FatalPlyusError("Not all players have joined yet")
+        if self.stage <> Stage.PRE_GAME:
+            raise FatalPlyusError("Can't start game except from stage PRE_GAME  (in stage %s now)" % (self.stage,))
+
+        self.cur_player_index = 0
         rand_gen = self.get_random_gen()
         rand_gen.shuffle(self.players)
         rand_gen.shuffle(self.building_card_deck.cards)
 
-        self.num_players = len(self.players)
 
         for i,p in enumerate(self.players):
             p.set_position(i) 
@@ -49,7 +72,6 @@ class GameState(db.Model):
         self.player_with_crown_token = 0 #this player gets to go first when picking a role
         self.stage = Stage.PLAYING
         self.start_new_round()
-        self.winner = None
 
     def to_dict_for_public(self):
         d = {}

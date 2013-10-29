@@ -51,7 +51,7 @@ class Player(db.Model):
         if len(cards) < 2:
             #TODO: figure out and implement rule on reshuffling building cards 
             raise FatalPlyusError("Building deck is out of cards.")
-        self.buildings_buffer = util.draw_n(cards, 2)
+        self.buildings_buffer = draw_n(cards, 2)
 
     def set_position(self, i):
         self.position = i

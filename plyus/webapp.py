@@ -4,9 +4,10 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 
 from plyus import app
 from plyus import db, lm, oid
-from plyus.user import User
+from plyus.user import User, PlayerProxy
 from plyus.gamestate import GameState
-from plyus.forms import LoginForm
+from plyus.forms import LoginForm, NewGameForm
+from plyus.player import Player
 
 # Login related functions
 
@@ -66,6 +67,7 @@ def hello_world():
 @app.route('/games')
 def list_games():
     app.logger.warn("entered list_ games")
+    app.logger.warn("config is %s" % app.config)
     games = GameState.query.all()
     app.logger.warn("got games")
     return render_template("sample.html",games_in_template = games )
@@ -75,6 +77,23 @@ def list_games():
 def show_game(gid):
     game = GameState.query.filter(GameState.id==gid).first()
     return render_template("game.html", game = game.to_dict_for_public())
+
+@app.route('/game/new', methods=['GET', 'POST'])
+@login_required
+def new_game():
+    form = NewGameForm()
+    if form.validate_on_submit():
+        seed = 37
+
+        creator = Player(g.user.nickname )
+        game = GameState(seed, creator, form.num_players.data)
+        proxy = PlayerProxy(g.user, creator)
+        db.session.add(game)
+        db.session.add(proxy)
+        db.session.commit()
+        return redirect(url_for('show_game',gid=game.id))
+    else:
+        return render_template("new_game.html",form=form)
 
 @app.route('/hello')
 def hello():

@@ -32,3 +32,7 @@ class PlayerProxy(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey(User.id),primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey(Player.id), primary_key=True)
     player = db.relationship("Player", uselist=False)
+
+    def __init__(self, u, p):
+        self.user_id = u.id
+        self.player = p

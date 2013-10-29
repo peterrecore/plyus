@@ -55,6 +55,7 @@ class TestAllTheThings(unittest.TestCase):
         players = [fake_player("Peter"),fake_player("Manan")]
         game = GameState(42, players[0], 2, deck_template="decks/deck_test_30.csv")
         game.add_player(players[1])
+        self.assertIsNotNone(game.to_dict_for_public(), "to_dict shouldn't crash even if called before game is started and round is created")
         game.start_game()
         r = Round(game)
 

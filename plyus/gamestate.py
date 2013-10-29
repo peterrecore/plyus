@@ -79,16 +79,20 @@ class GameState(db.Model):
                           'phase','step','cur_player_index','num_players',
                           'winner']
         for k in fields_to_copy:
-            d[k] = self.__dict__[k] 
+            if k in self.__dict__:
+                d[k] = self.__dict__[k]
 
         if self.id:
             d['id'] = self.id
 
         d['players'] = [p.to_dict_for_public(self.building_card_deck) for p in self.players]
         d['building_card_deck_len'] = len(self.building_card_deck.cards)
-        r = self.round.to_dict_for_public()
 
+        r = {}
+        if self.round:
+            r = self.round.to_dict_for_public()
         d['round'] = r
+
         return d
 
     def to_dict_for_player(self, player):

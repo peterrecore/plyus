@@ -3,6 +3,10 @@ import json
 import random
 import logging
 import collections
+import plyus
+import config
+plyus.create_flask_app(config.test)
+
 from plyus.util import *
 from plyus.errors import *
 from plyus.player import Player 

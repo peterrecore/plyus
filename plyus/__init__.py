@@ -7,6 +7,9 @@ from flask.ext.openid import OpenID
 import os
 
 db = None
+app = None
+lm = None
+oid = None
 
 def create_flask_app(config):
     global app, db, lm, oid

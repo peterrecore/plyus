@@ -104,9 +104,11 @@ class IntegrationTests(unittest.TestCase):
 
 
     def create_new_game(self, seed, sess, players):
-        game = GameState()
-        game.initialize_game(seed,players, deck_template='decks/deck_test_60.csv')
-        sess.add(game) 
+        game = GameState(seed, players[0],len(players),deck_template='decks/deck_test_60.csv')
+        for p in players[1:]:
+            game.add_player(p)
+        game.start_game()
+        sess.add(game)
         sess.commit()
         return game.id
 

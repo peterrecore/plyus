@@ -4,10 +4,11 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 
 from plyus import app
 from plyus import db, lm, oid
-from plyus.user import User, PlayerProxy
+from plyus.user import User
 from plyus.gamestate import GameState
+from plyus.misc import Stage
 from plyus.forms import LoginForm, NewGameForm
-from plyus.player import Player
+from plyus.proto import *
 
 # Login related functions
 
@@ -70,13 +71,30 @@ def list_games():
     app.logger.warn("config is %s" % app.config)
     games = GameState.query.all()
     app.logger.warn("got games")
-    return render_template("sample.html",games_in_template = games )
+    return render_template("games_list.html",games_in_template = games )
+
+@app.route('/games/joinable')
+@login_required
+def list_games_joinable():
+    games = GameState.query.filter_by(stage = Stage.PRE_GAME).all()
+    return render_template("games_join.html", games=games)
+
+@app.route('/game/join/<int:gid>')
+def join_game(gid):
+    pass
 
 @app.route('/game/<int:gid>')
 @login_required
 def show_game(gid):
-    game = GameState.query.filter(GameState.id==gid).first()
+    game = GameState.query.filter(GameState.id==gid).one()
     return render_template("game.html", game = game.to_dict_for_public())
+
+@app.route('/protogame/<int:gid>')
+@login_required
+def show_proto_game(gid):
+    proto_game = ProtoGame.query.filter(ProtoGame.id == gid).one()
+    return render_template("protogame.html", game = proto_game)
+
 
 @app.route('/game/new', methods=['GET', 'POST'])
 @login_required
@@ -85,18 +103,11 @@ def new_game():
     if form.validate_on_submit():
         seed = 37
 
-        creator = Player(g.user.nickname )
-        game = GameState(seed, creator, form.num_players.data)
-        proxy = PlayerProxy(g.user, creator)
-        db.session.add(game)
-        db.session.add(proxy)
+        proto_game = ProtoGame(form.num_players.data, g.user)
+        db.session.add(proto_game)
         db.session.commit()
-        return redirect(url_for('show_game',gid=game.id))
+        return redirect(url_for('show_proto_game',gid=proto_game.id))
     else:
         return render_template("new_game.html",form=form)
 
-@app.route('/hello')
-def hello():
-    app.logger.warn("about to say hello")
-    return 'hello works fine'
 

@@ -2,7 +2,6 @@ import logging
 import csv
 from plyus import db
 from plyus.mutable import MutableList 
-from plyus.mutable import MutableDict 
 from plyus.mutable import JSONEncoded
 
 class BuildingDeck(db.Model):

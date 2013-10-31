@@ -25,5 +25,5 @@ def create_flask_app(my_config):
 
     oid = OpenID(app, os.path.join(basedir, 'tmp'))
 
-    from plyus import misc, gamestate, round, player, user
+    from plyus import misc, gamestate, round, player, user, proto
     from plyus import webapp

@@ -1,13 +1,18 @@
 import unittest
 import logging
+
+import plyus
+import config
+plyus.create_flask_app(config.test)
+
 from plyus.player import Player
 from plyus.misc import BuildingDeck
 from plyus.gamestate import GameState
-from plyus.user import User,PlayerProxy
-from plyus import db
+from plyus.user import User
+from plyus.proto import ProtoGame, ProtoPlayer
 
 def create_session_maker():
-    return db.create_scoped_session
+    return plyus.db.create_scoped_session
 
 
 class TestSQL(unittest.TestCase):
@@ -15,15 +20,16 @@ class TestSQL(unittest.TestCase):
     def setUpClass(cls):
         logging.basicConfig(level=logging.DEBUG) 
         logging.warning("logging level set in TestSQL")
-        db.drop_all()
-        db.create_all()
+        plyus.db.drop_all()
+        plyus.db.create_all()
 
     def test_save_and_load(self):
         deck_template = 'decks/deck_test_30.csv' 
         p1 = Player("peter")
         p2 = Player("manan")
-        g = GameState()
-        g.initialize_game(42, [p1,p2], deck_template)
+        g = GameState(42, p1, 2, deck_template)
+        g.add_player(p2)
+        g.start_game()
 
         p1.gold = 32
         p1.take_cards(g.building_card_deck.cards)
@@ -66,31 +72,49 @@ class TestSQL(unittest.TestCase):
         self.assertEqual(card.id, 3)
 
 
-    def test_player_proxy(self):
+    def test_protos(self):
+        #create 2 protogames, and include user 1 in both. once as owner, once as player that user should have 2 protoplayers
         sess = create_session_maker()()
-        p1 = Player("peter")
-        p2 = Player("manan")
-        p3 = Player("peter2")
 
-        deck_template = 'decks/deck_test_30.csv'
-        g1 = GameState()
-        g1.initialize_game(42, [p1,p2], deck_template)
-
-        g2 = GameState()
-        g2.initialize_game(42, [p3,p2], deck_template)
 
         u1 = User(nickname="peternick", email="peter@example.org")
-
-        sess.add_all([g1, g2, u1 ])
+        u2 = User(nickname="manannick", email="manan@example.org")
+        u3 = User(nickname="marknick", email="mark@example.org")
+        sess.add_all([u1, u2, u3])
         sess.flush()
-        pp1 = PlayerProxy(user_id = u1.id, player = p1)
-        pp2 = PlayerProxy(user_id = u1.id, player = p3)
-        sess.add(pp1)
-        sess.add(pp2)
+
+        for u in [u1,u2,u3]:
+            logging.debug("user %s has id %s" % (u.nickname, u.id))
+
+        pg1 = ProtoGame(2, u1)
+        pg2 = ProtoGame(2, u3)
+
+        pp1 = ProtoPlayer(u1)
+        pp2 = ProtoPlayer(u2)
+
+        pg1.proto_players.append(pp2)
+        pg2.proto_players.append(pp1)
+
+        sess.add(pg1)
+        sess.add(pg2)
 
         sess.commit()
 
-        self.assertEqual(len(u1.player_proxies), 2)
+
+        p_u1g1 = Player("peter in game 1")
+        p_u2g1 = Player("manan in game 1")
+
+        p_u1g2 = Player("peter in game 2")
+        p_u2g2 = Player("peter in game 2")
+
+
+
+        deck_template = 'decks/deck_test_30.csv'
+
+        logging.debug("u1 protoplayers are %s" % u1.proto_players)
+
+        self.assertEqual(len(u1.proto_players), 2)
+        self.assertEqual(len(u2.proto_players), 1)
 
 
 if __name__ == '__main__':

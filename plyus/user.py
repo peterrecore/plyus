@@ -1,5 +1,4 @@
 from plyus import db
-from plyus.player import Player
 
 class User(db.Model):
     __tablename__ = "users"
@@ -7,7 +6,7 @@ class User(db.Model):
     nickname = db.Column(db.String(64), unique = True)
     email = db.Column(db.String(120), unique = True)
 
-    player_proxies = db.relationship("PlayerProxy")
+    proto_players = db.relationship("ProtoPlayer")
 
     def is_authenticated(self):
         return True
@@ -24,15 +23,4 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % (self.nickname)
 
-class PlayerProxy(db.Model):
-    """This class will link player objects to a user object, without the player object having
-    to know anything about Users. This is an extra level of indirection, but without it,
-     player objects, and therefore the whole game engine would need to know about Users"""
-    __tablename__ = "player_proxies"
-    user_id = db.Column(db.Integer, db.ForeignKey(User.id),primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey(Player.id), primary_key=True)
-    player = db.relationship("Player", uselist=False)
 
-    def __init__(self, u, p):
-        self.user_id = u.id
-        self.player = p

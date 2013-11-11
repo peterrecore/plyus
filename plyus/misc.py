@@ -1,4 +1,3 @@
-import logging
 import csv
 from plyus import db
 from plyus.mutable import MutableList 

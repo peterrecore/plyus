@@ -2,8 +2,7 @@ import logging
 import util
 from plyus.mutable import MutableList 
 from plyus.mutable import JSONEncoded
-from plyus.util import lowest_higher_than
-from plyus.errors import FatalPlyusError 
+from plyus.errors import FatalPlyusError
 from plyus import db
 
 

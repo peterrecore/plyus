@@ -1,7 +1,5 @@
-import logging
 from plyus.gamestate import GameState
-from plyus.misc import *
-from plyus.mutable import MutableList 
+from plyus.mutable import MutableList
 from plyus.mutable import JSONEncoded
 from plyus.util import draw_n
 from plyus.errors import FatalPlyusError 

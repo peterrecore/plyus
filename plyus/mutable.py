@@ -1,8 +1,10 @@
-import collections
 import json
-import util
+
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.types import TypeDecorator, VARCHAR
+
+import util
+
 
 class MutableList(Mutable, list):
     @classmethod

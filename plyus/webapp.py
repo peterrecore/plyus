@@ -1,8 +1,6 @@
 from flask import flash, render_template, redirect,url_for, g, session,request
 from flask.ext.login import login_user, logout_user, current_user, login_required
 
-from openid.server import server as oidserver
-
 from plyus import app
 from plyus import db, lm, oid
 from plyus.user import User

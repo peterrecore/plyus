@@ -1,10 +1,12 @@
 import logging
-import util
 import random
+
+import util
 from plyus.misc import *
-from plyus.round import Round 
+from plyus.round import Round
 from plyus import db
 from plyus.errors import FatalPlyusError
+
 
 #TODO: refactor so referee is the only one who knows about random_gen
 #      make all gamestate methods more testable by injecting the randomly chosen

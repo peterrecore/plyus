@@ -1,6 +1,7 @@
 import unittest
 import logging
-from plyus import app,db
+from plyus import app
+
 
 class WebAppTestCase(unittest.TestCase):
 

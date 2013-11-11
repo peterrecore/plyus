@@ -1,4 +1,3 @@
-from plyus import *
 from plyus.misc import *
 class Object(object):
     def __init__(self, d):

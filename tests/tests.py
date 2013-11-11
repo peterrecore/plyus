@@ -1,8 +1,6 @@
 import unittest
 import json
-import random
 import logging
-import collections
 import plyus
 import config
 plyus.create_flask_app(config.test)
@@ -13,7 +11,7 @@ from plyus.player import Player
 from plyus.referee import Referee
 from plyus.round import Round
 from plyus.gamestate import GameState
-from plyus.misc import Phase, Stage, Stage, Building, BuildingDeck
+from plyus.misc import Stage, Building, BuildingDeck
 from simpleai import SimpleAIPlayer
 
 

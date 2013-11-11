@@ -4,6 +4,7 @@ import logging
 import config
 
 import plyus
+
 plyus.create_flask_app(config.test)
 from plyus import db
 
@@ -13,13 +14,15 @@ from plyus.gamestate import GameState
 from plyus.referee import Referee
 from simpleai import SimpleAIPlayer
 
+
 def create_session_maker():
     return db.create_scoped_session
+
 
 class IntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.WARNING) 
+        logging.basicConfig(level=logging.WARNING)
         logging.warning("info level set.")
         logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
         db.drop_all()
@@ -46,14 +49,13 @@ class IntegrationTests(unittest.TestCase):
         self.do_one_test(2, 4)
 
 
-
     def create_players_and_ais(self, num_players):
-        names = ['PeterAI', 'MananAI','AndyAI','MarkAI','KevinAI','RyanAI','TabithaAI'] 
+        names = ['PeterAI', 'MananAI', 'AndyAI', 'MarkAI', 'KevinAI', 'RyanAI', 'TabithaAI']
         ais = {}
         players = []
         for n in names[0:num_players]:
-           ais[n] = SimpleAIPlayer(n)
-           players.append(Player(n))
+            ais[n] = SimpleAIPlayer(n)
+            players.append(Player(n))
         return (players, ais)
 
     def get_game_for_id(self, sess, game_id):
@@ -74,10 +76,10 @@ class IntegrationTests(unittest.TestCase):
             sess = session_maker()
             game = self.get_game_for_id(sess, game_id)
 
-            self.process_ai_move(game, ais) 
+            self.process_ai_move(game, ais)
 
-            sess.commit() 
-            if game.stage == Stage.GAME_OVER :
+            sess.commit()
+            if game.stage == Stage.GAME_OVER:
                 self.log_game_results(game)
                 finished_cleanly = True
                 sess.close()
@@ -91,20 +93,20 @@ class IntegrationTests(unittest.TestCase):
         cur_plyr = game.get_cur_plyr()
         cur_ai = ais[cur_plyr.name]
         json = ref.get_current_state_as_json_for_player(cur_plyr.position)
-        parsed_json = util.from_json(json) 
+        parsed_json = util.from_json(json)
         move = cur_ai.decide_what_to_do_json(parsed_json)
         ref.perform_move(move)
         logging.info("After processing ai move, stage is %s ", game.stage)
 
     def log_game_results(self, game):
-       logging.warning("**********************************************")
-       logging.warning("******* Success, game over and %s won after %s rounds  ******" % (game.winner,game.round_num)) 
-       for p in game.players:
-         logging.warning("Player %s had %s pts" % (p.name, p.points))
+        logging.warning("**********************************************")
+        logging.warning("******* Success, game over and %s won after %s rounds  ******" % (game.winner, game.round_num))
+        for p in game.players:
+            logging.warning("Player %s had %s pts" % (p.name, p.points))
 
 
     def create_new_game(self, seed, sess, players):
-        game = GameState(seed, players[0],len(players),deck_template='decks/deck_test_60.csv')
+        game = GameState(seed, players[0], len(players), deck_template='decks/deck_test_60.csv')
         for p in players[1:]:
             game.add_player(p)
         game.start_game()

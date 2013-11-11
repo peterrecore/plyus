@@ -18,9 +18,9 @@ class GameState(db.Model):
     step = db.Column(db.String)
     phase = db.Column(db.String)
     players = db.relationship("Player", order_by="Player.position")
-    base_seed = db.Column(db.Integer) 
+    base_seed = db.Column(db.Integer)
     building_card_deck = db.relationship(BuildingDeck, uselist=False)
-    num_players = db.Column(db.Integer)  
+    num_players = db.Column(db.Integer)
     round_num = db.Column(db.Integer)
     cur_player_index = db.Column(db.Integer)
     player_with_crown_token = db.Column(db.Integer)
@@ -42,7 +42,7 @@ class GameState(db.Model):
         self.players = [created_by]
         self.winner = None
 
-    def add_player(self,player):
+    def add_player(self, player):
         if self.stage <> Stage.PRE_GAME:
             raise FatalPlyusError("Can't add players except in stage PRE_GAME")
         if len(self.players) >= self.num_players:
@@ -54,7 +54,8 @@ class GameState(db.Model):
     def start_game(self):
 
         if len(self.players) < self.num_players:
-            logging.error("trying to start game %s with only %s players, but expecting %s players" % (self.id, len(self.players),self.num_players))
+            logging.error("trying to start game %s with only %s players, but expecting %s players" % (
+            self.id, len(self.players), self.num_players))
             raise FatalPlyusError("Not all players have joined yet")
         if self.stage <> Stage.PRE_GAME:
             raise FatalPlyusError("Can't start game except from stage PRE_GAME  (in stage %s now)" % (self.stage,))
@@ -64,11 +65,10 @@ class GameState(db.Model):
         rand_gen.shuffle(self.players)
         rand_gen.shuffle(self.building_card_deck.cards)
 
-
-        for i,p in enumerate(self.players):
-            p.set_position(i) 
+        for i, p in enumerate(self.players):
+            p.set_position(i)
             #TODO:  replace magic number with actual number of cards in starting hand.
-            p.buildings_in_hand.extend(util.draw_n(self.building_card_deck.cards, 4)) 
+            p.buildings_in_hand.extend(util.draw_n(self.building_card_deck.cards, 4))
 
         self.round = Round(self)
         self.player_with_crown_token = 0 #this player gets to go first when picking a role
@@ -77,8 +77,8 @@ class GameState(db.Model):
 
     def to_dict_for_public(self):
         d = {}
-        fields_to_copy = ['round_num','player_with_crown_token','stage',
-                          'phase','step','cur_player_index','num_players',
+        fields_to_copy = ['round_num', 'player_with_crown_token', 'stage',
+                          'phase', 'step', 'cur_player_index', 'num_players',
                           'winner']
         for k in fields_to_copy:
             if k in self.__dict__:
@@ -106,17 +106,17 @@ class GameState(db.Model):
             logging.debug("assigning role_draw_pile now")
             r['role_draw_pile'] = self.round.role_draw_pile
         else:
-            logging.debug(" %s not equal %s" % (player.position, self.cur_player_index)) 
-            logging.debug("or  %s not equal %s" % (self.phase, Phase.PICK_ROLES)) 
+            logging.debug(" %s not equal %s" % (player.position, self.cur_player_index))
+            logging.debug("or  %s not equal %s" % (self.phase, Phase.PICK_ROLES))
         d['round'] = r
         return d
-         
+
     def advance_cur_player_index(self):
         self.cur_player_index = (self.cur_player_index + 1) % self.num_players
 
     def __repr__(self):
-        return ("phase=%s, step=%s, cur_player_index: %s, round=%s" % 
-            (self.phase, self.step, self.cur_player_index, self.round))
+        return ("phase=%s, step=%s, cur_player_index: %s, round=%s" %
+                (self.phase, self.step, self.cur_player_index, self.round))
 
     def finish_round(self):
         logging.debug("made it to finish_round with stage as %s" % self.stage)
@@ -126,7 +126,7 @@ class GameState(db.Model):
         # and we are done with the round, game is over
         if self.stage == Stage.END_GAME:
             self.do_game_over_calculations()
-            self.stage = Stage.GAME_OVER 
+            self.stage = Stage.GAME_OVER
         logging.info("after end game check, stage is %s" % self.stage)
         #if the konig was around, give that player the crown
         m = self.round.gen_role_to_plyr_map()
@@ -168,7 +168,6 @@ class GameState(db.Model):
                 p.rainbow_bonus = True
                 bonus_points += 3
 
-
             if len(p.buildings_on_table) >= 8:
                 bonus_points += 2
 
@@ -177,13 +176,13 @@ class GameState(db.Model):
 
             p.points = basic_points + bonus_points
             p.ranking = (p.points, p.gold, basic_points)
-        #TODO:  implement official tiebreaker                        
-        ranked_players = sorted(self.players, key=lambda p:p.ranking, reverse=True )
+            #TODO:  implement official tiebreaker
+        ranked_players = sorted(self.players, key=lambda p: p.ranking, reverse=True)
         self.winner = ranked_players[0].name
 
     def get_random_gen(self):
         cur_plyr = self.get_cur_plyr()
-        seed = str(self.base_seed) + str(self.round_num * 117) + str(self.cur_player_index * 13) 
+        seed = str(self.base_seed) + str(self.round_num * 117) + str(self.cur_player_index * 13)
 
         seed = seed + self.step
         str(cur_plyr.name) + str(cur_plyr.buildings_in_hand)

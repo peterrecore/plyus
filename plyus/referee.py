@@ -12,21 +12,21 @@ class Referee:
         self.game_state = gs
         self.random_gen = gs.get_random_gen()
         self.action_handlers = {
-             'pick_role':self.handle_pick_role
-            ,'hide_role':self.handle_hide_role
-            ,'take_gold':self.handle_take_gold
-            ,'build_building':self.handle_build_building
-            ,'draw_cards':self.handle_draw_cards
-            ,'keep_card':self.handle_keep_card
-            ,'finish':self.handle_finish
-            ,'use_power':self.handle_use_power
-            ,'take_bonus':self.handle_take_bonus
+            'pick_role': self.handle_pick_role
+            , 'hide_role': self.handle_hide_role
+            , 'take_gold': self.handle_take_gold
+            , 'build_building': self.handle_build_building
+            , 'draw_cards': self.handle_draw_cards
+            , 'keep_card': self.handle_keep_card
+            , 'finish': self.handle_finish
+            , 'use_power': self.handle_use_power
+            , 'take_bonus': self.handle_take_bonus
         }
         self.power_handlers = {
-             1:self.handle_power_1
-            ,2:self.handle_power_2
-            ,3:self.handle_power_3
-            ,8:self.handle_power_8
+            1: self.handle_power_1
+            , 2: self.handle_power_2
+            , 3: self.handle_power_3
+            , 8: self.handle_power_8
         }
 
 
@@ -41,7 +41,7 @@ class Referee:
         logging.debug('game_state is %s' % self.game_state)
 
         player_index = move['player']
-        if player_index not in range(0,self.game_state.num_players):
+        if player_index not in range(0, self.game_state.num_players):
             raise IllegalActionError("Not a valid player")
 
         player = self.game_state.players[player_index]
@@ -61,19 +61,19 @@ class Referee:
         # perform the action
         cur_player = self.game_state.get_cur_plyr()
         handler = self.action_handlers[action["name"]]
-        handler(action,cur_player) 
+        handler(action, cur_player)
 
         #building an 8th building triggers the end of the game
         if len(cur_player.buildings_on_table) >= 8:
             #if no one else has trigged the END_GAME yet, this player is first
             #to get 8 buildings, and gets a bonus
-            if self.game_state.stage == Stage.PLAYING: 
+            if self.game_state.stage == Stage.PLAYING:
                 cur_player.first_to_eight_buildings = True
                 self.game_state.stage = Stage.END_GAME
 
         new_cur_player = self.game_state.cur_player_index
         logging.debug(" -- move handled.")
-      
+
         return self.get_current_state_as_json_for_player(new_cur_player)
 
     def get_current_state_as_json_for_player(self, player_index):
@@ -83,7 +83,7 @@ class Referee:
         d['game'] = self.game_state.to_dict_for_player(for_player)
         d['me'] = for_player.to_dict_for_private(self.game_state.building_card_deck)
         j = util.to_json(d)
-        return j 
+        return j
 
 
     def handle_use_power(self, action, cur_player):
@@ -108,10 +108,10 @@ class Referee:
 
         role_to_plyr_map = round.gen_role_to_plyr_map()
 
-        logging.info("cur_player is %s, cur_role=%s" % (cur_player,cur_role))
-        next_role = lowest_higher_than(role_to_plyr_map.keys(), cur_role)  
+        logging.info("cur_player is %s, cur_role=%s" % (cur_player, cur_role))
+        next_role = lowest_higher_than(role_to_plyr_map.keys(), cur_role)
         if next_role == round.dead_role:
-            next_role = lowest_higher_than(role_to_plyr_map.keys(), cur_role+1)  
+            next_role = lowest_higher_than(role_to_plyr_map.keys(), cur_role + 1)
 
         logging.info("next_role is %s  " % next_role)
         # if everyone has played, start a new round
@@ -137,12 +137,12 @@ class Referee:
 
         cur_player.revealed_roles.append(cur_player.cur_role)
         if cur_player.cur_role == rnd.mugged_role:
-           stolen = cur_player.gold 
-           cur_player.gold = 0
-           mugger = rnd.gen_role_to_plyr_map()[2]
-           logging.info("Mugger[ %s ] has mugged [%s]" % (mugger, cur_player.name))
-           self.game_state.players[mugger].gold += stolen
-           #TODO: announce gold was stolen
+            stolen = cur_player.gold
+            cur_player.gold = 0
+            mugger = rnd.gen_role_to_plyr_map()[2]
+            logging.info("Mugger[ %s ] has mugged [%s]" % (mugger, cur_player.name))
+            self.game_state.players[mugger].gold += stolen
+            #TODO: announce gold was stolen
 
     #some things happen after a player "takes an action"
     # which means after they draw cards or take gold
@@ -165,7 +165,6 @@ class Referee:
     def handle_build_building(self, action, cur_player):
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.BUILD_BUILDING)
 
-
         if 'target' not in action:
             logging.error("build action with no target")
             raise IllegalActionError()
@@ -185,10 +184,10 @@ class Referee:
             target = self.game_state.building_card_deck.card_for_id(target_id)
 
             cost = target.cost
-            if cost > cur_player.gold :
+            if cost > cur_player.gold:
                 logging.info("not enough gold!")
                 raise IllegalActionError()
- 
+
             cur_player.buildings_in_hand.remove(target_id)
             cur_player.buildings_on_table.append(target_id)
             cur_player.gold = cur_player.gold - cost
@@ -218,7 +217,7 @@ class Referee:
             raise IllegalActionError()
 
         target_index = action['target']
-        if target_index < 0 or target_index > len(cur_player.buildings_buffer): 
+        if target_index < 0 or target_index > len(cur_player.buildings_buffer):
             logging.error("trying to keep card that wasn't drawn")
             raise IllegalActionError()
 
@@ -228,7 +227,6 @@ class Referee:
         self.game_state.building_card_deck.cards.extend(cur_player.buildings_buffer)
         self.post_action_effects(cur_player)
         self.game_state.step = Step.BUILD_BUILDING
-
 
 
     def handle_hide_role(self, action, cur_player):
@@ -272,7 +270,7 @@ class Referee:
         # players must place a role card face down after their middle picks
         # to maintain uncertainty
         num_roles_picked_so_far = len(role_to_plyr_map)
-        if (self.game_state.num_players == 2 and num_roles_picked_so_far in [2,3]):
+        if (self.game_state.num_players == 2 and num_roles_picked_so_far in [2, 3]):
             self.game_state.step = Step.HIDE_ROLE
             return
 
@@ -284,14 +282,14 @@ class Referee:
 
             roles_in_play = util.flatten(round.gen_plyr_to_role_map().values())
 
-            current_role = lowest_higher_than(roles_in_play,0)
-            cur_plyr_index =  role_to_plyr_map[current_role]
+            current_role = lowest_higher_than(roles_in_play, 0)
+            cur_plyr_index = role_to_plyr_map[current_role]
             self.game_state.cur_player_index = cur_plyr_index
 
             self.game_state.players[cur_plyr_index].cur_role = current_role
 
-            logging.info("Done Picking.  cur_role=%s, roles= %s, cur_plyr_pos=%s " 
-                % (current_role, cur_player.roles, self.game_state.cur_player_index))
+            logging.info("Done Picking.  cur_role=%s, roles= %s, cur_plyr_pos=%s "
+                         % (current_role, cur_player.roles, self.game_state.cur_player_index))
             self.game_state.phase = Phase.PLAY_TURNS
             self.game_state.step = Step.COINS_OR_BUILDING
 
@@ -302,10 +300,10 @@ class Referee:
 
     def handle_take_bonus(self, action, cur_plyr):
         self.validate_phase_and_step(Phase.PLAY_TURNS,
-                             Step.BUILD_BUILDING,
-                             Step.FINISH,
-                             Step.COINS_OR_BUILDING)
-        color_map = {4:"yellow", 5:"blue", 6:"green",8:"red"}
+                                     Step.BUILD_BUILDING,
+                                     Step.FINISH,
+                                     Step.COINS_OR_BUILDING)
+        color_map = {4: "yellow", 5: "blue", 6: "green", 8: "red"}
 
         if cur_plyr.cur_role not in color_map:
             raise IllegalActionError("role %s doesn't get bonus gold" % cur_plyr.cur_role)
@@ -332,7 +330,7 @@ class Referee:
         if target == 1:
             raise IllegalActionError("You can't target yourself")
 
-        if target not in [2,3,4,5,6,7,8]:
+        if target not in [2, 3, 4, 5, 6, 7, 8]:
             raise IllegalActionError("Invalid target specified: %s" % target)
 
         #TODO: if player targets a face up role, announce this as a bold move
@@ -350,7 +348,7 @@ class Referee:
         if target == 2:
             raise IllegalActionError("You can't target yourself. That would be silly.")
 
-        if target not in [3,4,5,6,7,8]:
+        if target not in [3, 4, 5, 6, 7, 8]:
             raise IllegalActionError("Invalid target specified: %s" % target)
 
         #TODO: if player targets a face up role, announce this as a bold move
@@ -358,26 +356,26 @@ class Referee:
 
     def handle_power_3(self, action, cur_plyr):
         if not 'target' in action:
-           raise IllegalActionError("No target specified")
+            raise IllegalActionError("No target specified")
         target = action['target']
-        
+
         if target == cur_plyr.position:
-           raise IllegalActionError("Can't target yourself.")        
+            raise IllegalActionError("Can't target yourself.")
 
         if target not in range(self.game_state.num_players) and target != "deck":
-           raise IllegalActionError("Invalid target: %s" % target)        
+            raise IllegalActionError("Invalid target: %s" % target)
 
         hand = cur_plyr.buildings_in_hand
 
         if target == "deck":
 
             if len(hand) <= 0:
-                return  # exchanging 0 cards is a no op
+                return # exchanging 0 cards is a no op
 
             if not 'discards' in action:
                 raise IllegalActionError("No list of cards to discard.")
 
-            discards = action['discards']    
+            discards = action['discards']
 
             for d in discards:
                 if d not in hand:
@@ -394,7 +392,7 @@ class Referee:
             #blame my bad experience with JDO ages ago.
 
             other_hand = self.game_state.players[target].buildings_in_hand
-            buff = hand[:] 
+            buff = hand[:]
             hand[:] = other_hand
             other_hand[:] = buff
 
@@ -424,15 +422,15 @@ class Referee:
     def handle_power_8(self, action, cur_plyr):
         self.validate_phase_and_step(Phase.PLAY_TURNS, Step.FINISH)
         if not 'target_player_id' in action:
-           raise IllegalActionError("No target player specified")
+            raise IllegalActionError("No target player specified")
         target_player_pos = action['target_player_id']
 
         if not 'target_card_id' in action:
-           raise IllegalActionError("No target card specified")
+            raise IllegalActionError("No target card specified")
         target_card_id = action['target_card_id']
 
         if target_player_pos not in range(self.game_state.num_players):
-           raise IllegalActionError("Invalid target: %s" % target_player_pos)   
+            raise IllegalActionError("Invalid target: %s" % target_player_pos)
 
         target_plyr = self.game_state.players[target_player_pos]
 
@@ -447,7 +445,6 @@ class Referee:
         if target_card_id not in target_plyr.buildings_on_table:
             raise IllegalActionError("Target Player does not have target building")
 
-
         target_card = self.game_state.building_card_deck.card_for_id(target_card_id)
         cost_to_raze = target_card.cost - 1
 
@@ -461,17 +458,17 @@ class Referee:
     def validate_phase_and_step(self, phase, *steps):
         if self.game_state.phase != phase:
             logging.error("attempting action that requires phase %s, but current phase is %s" %
-                (phase, self.game_state.phase))
+                          (phase, self.game_state.phase))
             raise IllegalActionError
 
         if self.game_state.step not in steps:
             logging.error("attempting action that requires step %s, but current step is %s" %
-                (steps, self.game_state.step))
+                          (steps, self.game_state.step))
             raise IllegalActionError
 
     def validate_step(self, *steps):
         if self.game_state.step not in steps:
             logging.error("attempting action that requires step %s, but current step is %s" %
-                (steps, self.game_state.step))
+                          (steps, self.game_state.step))
             raise IllegalActionError
 

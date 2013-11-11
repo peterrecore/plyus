@@ -1,31 +1,31 @@
 <html>
-  <head>
-   Plyus prototype
-  </head>
-  <body>
-    <div>Plyus:
+<head>
+    Plyus prototype
+</head>
+<body>
+<div>Plyus:
 
-        {% if g.user.is_authenticated() %}
+    {% if g.user.is_authenticated() %}
         | <a href="{{ url_for('logout') }}">Logout</a>
-            | welcome, {{ g.user.nickname }}
-        {% endif %}
+        | welcome, {{ g.user.nickname }}
+    {% endif %}
     <ul>
-       <li><a href="{{ url_for('list_games') }}">List games</a></li>
-       <li> <a href="{{ url_for('new_game') }}">New Game</a> </li>
-       <li> <a href="{{ url_for('list_games_joinable') }}">Join a Game</a> </li>
+        <li><a href="{{ url_for('list_games') }}">List games</a></li>
+        <li><a href="{{ url_for('new_game') }}">New Game</a></li>
+        <li><a href="{{ url_for('list_games_joinable') }}">Join a Game</a></li>
     </ul>
 
-    </div>
-    <hr>
-    {% with messages = get_flashed_messages() %}
+</div>
+<hr>
+{% with messages = get_flashed_messages() %}
     {% if messages %}
-    <ul>
-    {% for message in messages %}
-        <li>{{ message }} </li>
-    {% endfor %}
-    </ul>
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }} </li>
+            {% endfor %}
+        </ul>
     {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </body>
+{% endwith %}
+{% block content %}{% endblock %}
+</body>
 </html>

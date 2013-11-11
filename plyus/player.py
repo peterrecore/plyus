@@ -2,17 +2,16 @@ from plyus.gamestate import GameState
 from plyus.mutable import MutableList
 from plyus.mutable import JSONEncoded
 from plyus.util import draw_n
-from plyus.errors import FatalPlyusError 
+from plyus.errors import FatalPlyusError
 from plyus import db
 
 #TODO:  make sure we can't have 2 players with the same name.  or else
 # make sure we handle that case properly
 class Player(db.Model):
-
     __tablename__ = 'players'
 
     id = db.Column(db.Integer, primary_key=True)
-    gamestate_id = db.Column(db.Integer, db.ForeignKey(GameState.id), nullable = False)
+    gamestate_id = db.Column(db.Integer, db.ForeignKey(GameState.id), nullable=False)
     name = db.Column(db.String)
     position = db.Column(db.Integer)
     gold = db.Column(db.Integer)
@@ -55,16 +54,20 @@ class Player(db.Model):
         self.position = i
 
     def __repr__(self):
-        return "Player(name=%s, pos=%s, cur_role= %s, roles=%s, gold=%s, hand=%r, dists=%s)" % (self.name, 
-            self.position, self.cur_role, self.roles, self.gold, self.buildings_in_hand,self.buildings_on_table)
+        return "Player(name=%s, pos=%s, cur_role= %s, roles=%s, gold=%s, hand=%r, dists=%s)" % (self.name,
+                                                                                                self.position,
+                                                                                                self.cur_role,
+                                                                                                self.roles, self.gold,
+                                                                                                self.buildings_in_hand,
+                                                                                                self.buildings_on_table)
 
     def to_dict_for_public(self, deck):
         d = {}
-        fields_to_copy = ['name','position','gold', 'points','revealed_roles']
+        fields_to_copy = ['name', 'position', 'gold', 'points', 'revealed_roles']
 
         for k in fields_to_copy:
             d[k] = self.__dict__[k]
-        
+
         d['buildings_on_table'] = [deck.card_for_id(i) for i in self.buildings_on_table]
         d['num_cards_in_hand'] = len(self.buildings_in_hand)
 
@@ -77,7 +80,7 @@ class Player(db.Model):
         fields_to_copy = ['cur_role', 'roles']
         for k in fields_to_copy:
             d[k] = self.__dict__[k]
-       
+
         d['buildings_in_hand'] = [deck.card_for_id(i) for i in self.buildings_in_hand]
         d['buildings_buffer'] = [deck.card_for_id(i) for i in self.buildings_buffer]
         return d

@@ -3,18 +3,18 @@
     <h1>Game {{ game.id }}</h1>
     <p> Number of players: {{ game.num_players }}</p>
     <h2>Players who have joined so far:</h2>
-    <p>{{game.stage}}</p>
+    <p>{{ game.stage }}</p>
     <ul>
-      {% for player in game.proto_players %}
-        <li>{{player.user.nickname}} aka {{ player.user.email }}</li>
-      {% endfor %}
+        {% for player in game.proto_players %}
+            <li>{{ player.user.nickname }} aka {{ player.user.email }}</li>
+        {% endfor %}
     </ul>
     <hr/>
     {% if show_start_button %}
-       <a href="{{ url_for('game_start',gid=game.id) }}" >Start Game</a>
+        <a href="{{ url_for('game_start',gid=game.id) }}">Start Game</a>
     {% endif %}
 
     {% if show_join_button %}
-        <a href="{{ url_for('join_proto_game',gid=game.id) }}" > Join Game</a>
+        <a href="{{ url_for('join_proto_game',gid=game.id) }}"> Join Game</a>
     {% endif %}
 {% endblock %}

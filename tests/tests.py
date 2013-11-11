@@ -3,11 +3,12 @@ import json
 import logging
 import plyus
 import config
+
 plyus.create_flask_app(config.test)
 
 from plyus.util import *
 from plyus.errors import *
-from plyus.player import Player 
+from plyus.player import Player
 from plyus.referee import Referee
 from plyus.round import Round
 from plyus.gamestate import GameState
@@ -15,57 +16,55 @@ from plyus.misc import Stage, Building, BuildingDeck
 from simpleai import SimpleAIPlayer
 
 
-
-
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-#        logging.basicConfig(level=logging.DEBUG) 
-        logging.basicConfig(level=logging.WARNING) 
+    #        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.WARNING)
         logging.warning("Warning level set.")
 
     def test_create_deck_from_file(self):
         deck = BuildingDeck('decks/deck_test_30.csv')
         self.assertEqual(len(deck.cards), 30)
-        self.assertEqual(deck.full_cards[2], Building(3,"green",2,"Fort Knox"))
-        self.assertEqual(deck.card_for_id(3), Building(3,"green",2,"Fort Knox"))
+        self.assertEqual(deck.full_cards[2], Building(3, "green", 2, "Fort Knox"))
+        self.assertEqual(deck.card_for_id(3), Building(3, "green", 2, "Fort Knox"))
         self.assertEqual(deck.card_for_id(3).color, "green")
 
 
-
     def test_draw(self):
-        given = [1,2,3,4,5]
-        result = draw_n(given,2)
+        given = [1, 2, 3, 4, 5]
+        result = draw_n(given, 2)
         self.assertEqual(len(result), 2)
-        self.assertListEqual(result,[1,2])
-        self.assertListEqual(given,[3,4,5])
+        self.assertListEqual(result, [1, 2])
+        self.assertListEqual(given, [3, 4, 5])
 
     def test_building(self):
-        foo = Building(1,"blue",3,"NASA")
+        foo = Building(1, "blue", 3, "NASA")
         self.assertTrue(foo.name == "NASA")
 
     @unittest.skip("skipping until we rewrite to not make it so fragile.")
     def test_valid_moves(self):
-        self.do_test_using_json_from_file("moves.json","valid_moves")
+        self.do_test_using_json_from_file("moves.json", "valid_moves")
 
 
     def test_create_round(self):
-        players = [fake_player("Peter"),fake_player("Manan")]
+        players = [fake_player("Peter"), fake_player("Manan")]
         game = GameState(42, players[0], 2, deck_template="decks/deck_test_30.csv")
         game.add_player(players[1])
-        self.assertIsNotNone(game.to_dict_for_public(), "to_dict shouldn't crash even if called before game is started and round is created")
+        self.assertIsNotNone(game.to_dict_for_public(),
+                             "to_dict shouldn't crash even if called before game is started and round is created")
         game.start_game()
         r = Round(game)
 
         self.assertEqual(len(r.face_up_roles), 0)
         self.assertEqual(len(r.face_down_roles), 1)
-        self.assertEqual(len(r.role_draw_pile),7)
+        self.assertEqual(len(r.role_draw_pile), 7)
 
     #when the wrong player tries to take a move
     # we expect an Error.
     def test_wrong_turn(self):
         with self.assertRaises(NotYourTurnError):
-            players = [fake_player("Peter"),fake_player("Manan")]
+            players = [fake_player("Peter"), fake_player("Manan")]
             game = GameState(42, players[0], 2, deck_template='decks/default.csv')
             game.add_player(players[1])
             game.start_game()
@@ -108,13 +107,12 @@ class TestAllTheThings(unittest.TestCase):
         logging.warning("total_rounds: %s" % total_rounds)
 
     def do_ai_test(self, seed, num_players):
-        names = ['PeterAI', 'MananAI','AndyAI','MarkAI','KevinAI','RyanAI','TabithaAI'] 
+        names = ['PeterAI', 'MananAI', 'AndyAI', 'MarkAI', 'KevinAI', 'RyanAI', 'TabithaAI']
         ais = {}
         players = []
         for n in names[0:num_players]:
-           ais[n] = SimpleAIPlayer(n)
-           players.append(Player(n))
-
+            ais[n] = SimpleAIPlayer(n)
+            players.append(Player(n))
 
         game = GameState(seed, players[0], num_players, deck_template='decks/deck_test_60.csv')
         for p in players[1:num_players]:
@@ -131,26 +129,25 @@ class TestAllTheThings(unittest.TestCase):
             cur_ai = ais[cur_plyr.name]
             move = cur_ai.decide_what_to_do_native(game)
             ref.perform_move(move)
-#            logging.warning("Stage is %s" % game.stage)
-            if game.stage == Stage.GAME_OVER :
-               logging.warning("**********************************************")
-               logging.warning("******* Success, game over and %s won   ******" % game.winner) 
-               for p in game.players:
-                 logging.warning("Player %s had %s pts" % (p.name, p.points))
-               return game.round_num
+            #            logging.warning("Stage is %s" % game.stage)
+            if game.stage == Stage.GAME_OVER:
+                logging.warning("**********************************************")
+                logging.warning("******* Success, game over and %s won   ******" % game.winner)
+                for p in game.players:
+                    logging.warning("Player %s had %s pts" % (p.name, p.points))
+                return game.round_num
         logging.error("Didn't finish game in %s steps, ending test" % num_steps)
-        self.assertTrue(False, "didn't finish game in right amount of steps") 
+        self.assertTrue(False, "didn't finish game in right amount of steps")
 
     def do_ai_test_with_json(self, seed, num_players):
-        names = ['PeterAI', 'MananAI','AndyAI','MarkAI','KevinAI','RyanAI','TabithaAI'] 
+        names = ['PeterAI', 'MananAI', 'AndyAI', 'MarkAI', 'KevinAI', 'RyanAI', 'TabithaAI']
         ais = {}
         players = []
         for n in names[0:num_players]:
-           ais[n] = SimpleAIPlayer(n)
-           players.append(Player(n))
+            ais[n] = SimpleAIPlayer(n)
+            players.append(Player(n))
 
-
-        game = GameState(seed,players[0], num_players,  deck_template='decks/deck_test_60.csv')
+        game = GameState(seed, players[0], num_players, deck_template='decks/deck_test_60.csv')
         for p in players[1:num_players]:
             game.add_player(p)
         game.start_game()
@@ -158,11 +155,11 @@ class TestAllTheThings(unittest.TestCase):
         ref = Referee(game)
 
         json = ref.get_current_state_as_json_for_player(game.cur_player_index)
-        parsed_json = from_json(json) 
+        parsed_json = from_json(json)
         json_game = parsed_json['game']
 
         game = None #force ourselves to use json from now on, and fail fast if
-                    #accidentally use game
+        #accidentally use game
 
         num_steps = 100 * len(players)
 
@@ -180,32 +177,33 @@ class TestAllTheThings(unittest.TestCase):
             if stage not in [Stage.GAME_OVER, Stage.END_GAME, Stage.PLAYING]:
                 self.assertTrue(False, "stage is not valid: %s" % stage)
             logging.debug("stage is %s" % stage)
-            if stage == Stage.GAME_OVER :
-               logging.warning("**********************************************")
-               logging.warning("******* Success, game over and %s won after %s rounds  ******" % (json_game['winner'],json_game['round_num'])) 
-               json_players = json_game['players']
-               for p in json_players:
-                 logging.warning("Player %s had %s pts" % (p['name'], p['points']))
-               return json_game['round_num']
+            if stage == Stage.GAME_OVER:
+                logging.warning("**********************************************")
+                logging.warning("******* Success, game over and %s won after %s rounds  ******" % (
+                json_game['winner'], json_game['round_num']))
+                json_players = json_game['players']
+                for p in json_players:
+                    logging.warning("Player %s had %s pts" % (p['name'], p['points']))
+                return json_game['round_num']
         logging.error("Didn't finish game in %s steps, ending test" % num_steps)
-        self.assertTrue(False, "didn't finish game in right amount of steps") 
+        self.assertTrue(False, "didn't finish game in right amount of steps")
 
 
     def setUp(self):
         logging.info("\n--------- running %s -------------" % self.id())
 
+
 def fake_player(n):
     return Player(str(n))
 
+
 class RobotConfusedError(Exception):
     pass
-        
-
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-#    unittest.main()
+    #    unittest.main()
     suite = unittest.TestSuite()
     suite.addTest(TestAllTheThings('test_multiple_simple_ai_tests'))
     unittest.TextTestRunner(verbosity=2).run(suite)

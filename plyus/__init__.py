@@ -8,6 +8,7 @@ app = None
 lm = None
 oid = None
 
+
 def create_flask_app(my_config):
     global app, db, lm, oid
 

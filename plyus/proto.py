@@ -11,7 +11,7 @@ WAITING_TO_START = 2
 
 class ProtoGame(db.Model):
     __tablename__ = "proto_games"
-    id = db.Column(db.Integer, primary_key = True)
+    id = db.Column(db.Integer, primary_key=True)
 
     status = db.Column(db.String)
     num_players = db.Column(db.Integer)
@@ -30,7 +30,7 @@ class ProtoGame(db.Model):
     def can_user_join(self, user):
         if self.is_full():
             return False
-        #TODO: Should this be done via a sql query or a for loop like this?
+            #TODO: Should this be done via a sql query or a for loop like this?
         for pp in self.proto_players:
             if user.id == pp.user_id:
                 return False
@@ -42,9 +42,9 @@ class ProtoGame(db.Model):
             self.proto_players.append(pp)
             if self.is_full():
                 self.status = WAITING_TO_START
-            logging.info("user %s has been added as protoplayer %s to protogame %s",user, pp, self)
+            logging.info("user %s has been added as protoplayer %s to protogame %s", user, pp, self)
         else:
-            logging.warn("user %s can't join protogame %s but was trying to.",user, self)
+            logging.warn("user %s can't join protogame %s but was trying to.", user, self)
             raise FatalPlyusError("Can't join this game. maybe because game is full?")
 
 
@@ -56,21 +56,23 @@ class ProtoGame(db.Model):
     def is_full(self):
         return len(self.proto_players) >= self.num_players
 
+
 class ProtoPlayer(db.Model):
     """This class will link player objects to a user object, without the player object having
     to know anything about Users. This is an extra level of indirection, but without it,
      player objects, and therefore the whole game engine would need to know about Users"""
     __tablename__ = "proto_players"
-    id = db.Column(db.Integer, primary_key = True)
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey(User.id))
     user = db.relationship("User")
     player_id = db.Column(db.Integer, db.ForeignKey(Player.id))
     player = db.relationship("Player", uselist=False)
-    proto_game_id = db.Column(db.Integer, db.ForeignKey(ProtoGame.id), nullable = False)
+    proto_game_id = db.Column(db.Integer, db.ForeignKey(ProtoGame.id), nullable=False)
 
     def __init__(self, u):
         self.user_id = u.id
-#        self.proto_game_id = pg_id
+
+    #        self.proto_game_id = pg_id
 
     def __repr__(self):
         return "ProtoPlayer(user_id=%s)" % self.user_id

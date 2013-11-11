@@ -7,8 +7,9 @@ class NotYourTurnError(Exception):
         self.cur_player = cur_player_index
 
     def __repr__(self):
-        return ("NotYourTurnError(attempted_player=%s, cur_player=%s" 
-            % (self.attempted_player, self.cur_player))
+        return ("NotYourTurnError(attempted_player=%s, cur_player=%s"
+                % (self.attempted_player, self.cur_player))
+
 
 class NoSuchActionError(Exception):
     def __init__(self, attempted_action):
@@ -23,9 +24,9 @@ class FatalPlyusError(Exception):
         self.explanation = explanation
 
 
-
 class IllegalActionError(Exception):
     def __init__(self, attempted_action=""):
         self.attempted_action = attempted_action
+
     def __repr__(self):
         return "IllegalActionError(attempted_action=%s)" % (self.attempted_action)

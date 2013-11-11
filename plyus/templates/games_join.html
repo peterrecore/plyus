@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
     <h1>Hi!</h1>
-    {% for game in games%}
-    <p><b>Game {{game.id}} </b> (Num Players: {{ game.num_players }}) <a href="{{ url_for('show_proto_game',gid=game.id) }}"> Join</a></p>
+    {% for game in games %}
+        <p><b>Game {{ game.id }} </b> (Num Players: {{ game.num_players }}) <a
+                href="{{ url_for('show_proto_game',gid=game.id) }}"> Join</a></p>
 
-      {% for player in game.players %}
-        <p>{{player.name}}</p>
-      {% endfor %}
+        {% for player in game.players %}
+            <p>{{ player.name }}</p>
+        {% endfor %}
     {% endfor %}
 {% endblock %}

@@ -3,6 +3,7 @@ import logging
 
 import plyus
 import config
+
 plyus.create_flask_app(config.test)
 
 from plyus.player import Player
@@ -11,6 +12,7 @@ from plyus.gamestate import GameState
 from plyus.user import User
 from plyus.proto import ProtoGame, ProtoPlayer
 
+
 def create_session_maker():
     return plyus.db.create_scoped_session
 
@@ -18,13 +20,13 @@ def create_session_maker():
 class TestSQL(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.DEBUG) 
+        logging.basicConfig(level=logging.DEBUG)
         logging.warning("logging level set in TestSQL")
         plyus.db.drop_all()
         plyus.db.create_all()
 
     def test_save_and_load(self):
-        deck_template = 'decks/deck_test_30.csv' 
+        deck_template = 'decks/deck_test_30.csv'
         p1 = Player("peter")
         p2 = Player("manan")
         g = GameState(42, p1, 2, deck_template)
@@ -50,11 +52,10 @@ class TestSQL(unittest.TestCase):
 
         self.assertEqual(g_loaded.base_seed, 42)
 
-
-        p1_loaded = session.query(Player).filter(Player.name=='peter' , Player.gamestate_id == gs_id).one()
+        p1_loaded = session.query(Player).filter(Player.name == 'peter', Player.gamestate_id == gs_id).one()
         p1_bad_copy = Player("peter")
         self.assertEqual("peter", p1_loaded.name)
-        self.assertNotEqual(p1_loaded,p1_bad_copy)
+        self.assertNotEqual(p1_loaded, p1_bad_copy)
         self.assertEqual(len(p1_loaded.buildings_buffer), 2)
 
     def test_building_deck_reconstruction(self):
@@ -76,14 +77,13 @@ class TestSQL(unittest.TestCase):
         #create 2 protogames, and include user 1 in both. once as owner, once as player that user should have 2 protoplayers
         sess = create_session_maker()()
 
-
         u1 = User(nickname="peternick", email="peter@example.org")
         u2 = User(nickname="manannick", email="manan@example.org")
         u3 = User(nickname="marknick", email="mark@example.org")
         sess.add_all([u1, u2, u3])
         sess.flush()
 
-        for u in [u1,u2,u3]:
+        for u in [u1, u2, u3]:
             logging.debug("user %s has id %s" % (u.nickname, u.id))
 
         pg1 = ProtoGame(2, u1)
@@ -100,14 +100,11 @@ class TestSQL(unittest.TestCase):
 
         sess.commit()
 
-
         p_u1g1 = Player("peter in game 1")
         p_u2g1 = Player("manan in game 1")
 
         p_u1g2 = Player("peter in game 2")
         p_u2g2 = Player("peter in game 2")
-
-
 
         deck_template = 'decks/deck_test_30.csv'
 

@@ -2,9 +2,9 @@
 {% block content %}
     <h1>Hi!</h1>
     {% for game in games_in_template %}
-    <p>{{game.id}} <b>{{game.stage}}</b></p>
-      {% for player in game.players %}
-        <p>{{player.name}}</p>
-      {% endfor %}
+        <p>{{ game.id }} <b>{{ game.stage }}</b></p>
+        {% for player in game.players %}
+            <p>{{ player.name }}</p>
+        {% endfor %}
     {% endfor %}
 {% endblock %}

@@ -6,7 +6,9 @@ global_config =  {   'CSRF_ENABLED': True,
     'OPENID_PROVIDERS' : [
         { 'name': 'Google', 'url': 'https://www.google.com/accounts/o8/id' },
         { 'name': 'Yahoo', 'url': 'https://me.yahoo.com' },
-        { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' }]
+        { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' },
+    ] ,
+    'TEMP_DIR':os.path.join(basedir, 'tmp')
 }
 
 test = {}
@@ -18,6 +20,7 @@ db_uri = 'sqlite:///' + basedir + '/tmp/dev.db'
 dev = {}
 dev.update(global_config)
 dev.update(  {'SQLALCHEMY_DATABASE_URI': db_uri})
+providers = dev['OPENID_PROVIDERS']
 
-
+providers.append({ 'name': 'FakeFake', 'url': 'http://localhost:8000/id/mrpurple' })
 

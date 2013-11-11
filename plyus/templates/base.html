@@ -4,11 +4,17 @@
   </head>
   <body>
     <div>Plyus:
-        <a href="{{ url_for('list_games') }}">List games</a>
+
         {% if g.user.is_authenticated() %}
         | <a href="{{ url_for('logout') }}">Logout</a>
             | welcome, {{ g.user.nickname }}
         {% endif %}
+    <ul>
+       <li><a href="{{ url_for('list_games') }}">List games</a></li>
+       <li> <a href="{{ url_for('new_game') }}">New Game</a> </li>
+       <li> <a href="{{ url_for('list_games_joinable') }}">Join a Game</a> </li>
+    </ul>
+
     </div>
     <hr>
     {% with messages = get_flashed_messages() %}

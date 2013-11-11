@@ -1,15 +1,15 @@
-from flask import flash, Flask, render_template, redirect,url_for, g, session,request
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask import flash, render_template, redirect,url_for, g, session,request
 from flask.ext.login import login_user, logout_user, current_user, login_required
+
+from openid.server import server as oidserver
 
 from plyus import app
 from plyus import db, lm, oid
 from plyus.user import User
 from plyus.gamestate import GameState
-from plyus.misc import Stage
 from plyus.forms import LoginForm, NewGameForm
 from plyus.proto import *
-
+from plyus import proto
 # Login related functions
 
 @lm.user_loader
@@ -20,11 +20,13 @@ def load_user(id):
 @oid.loginhandler
 def login():
     if g.user is not None and g.user.is_authenticated():
-        return redirect(url_for('index'))
+        return redirect(url_for('games'))
     form = LoginForm()
     if form.validate_on_submit():
         session['remember_me'] = form.remember_me.data
-        return oid.try_login(form.openid.data, ask_for = ['nickname', 'email'])
+        x = oid.try_login(form.openid.data, ask_for = ['nickname', 'email'])
+        app.logger.warn("got result from try_login: %s",x)
+        return x
     return render_template('login.html',
         title = 'Sign In',
         form = form,
@@ -69,19 +71,23 @@ def hello_world():
 def list_games():
     app.logger.warn("entered list_ games")
     app.logger.warn("config is %s" % app.config)
-    games = GameState.query.all()
+    games = ProtoGame.query.all()
     app.logger.warn("got games")
     return render_template("games_list.html",games_in_template = games )
 
 @app.route('/games/joinable')
 @login_required
 def list_games_joinable():
-    games = GameState.query.filter_by(stage = Stage.PRE_GAME).all()
+    games = ProtoGame.query.filter_by(status = proto.WAITING_FOR_PLAYERS).all()
     return render_template("games_join.html", games=games)
 
-@app.route('/game/join/<int:gid>')
-def join_game(gid):
-    pass
+@app.route('/protogame/join/<int:gid>')
+def join_proto_game(gid):
+    proto_game = ProtoGame.query.filter(ProtoGame.id == gid).one()
+    proto_game.join_user(g.user)
+    db.session.commit()
+    app.logger.info("added user %s to protogame",g.user.email)
+    return redirect(url_for("show_proto_game",gid=gid))
 
 @app.route('/game/<int:gid>')
 @login_required
@@ -93,7 +99,8 @@ def show_game(gid):
 @login_required
 def show_proto_game(gid):
     proto_game = ProtoGame.query.filter(ProtoGame.id == gid).one()
-    return render_template("protogame.html", game = proto_game)
+    can_join = proto_game.can_user_join(g.user)
+    return render_template("protogame.html", game = proto_game, show_join_button = can_join)
 
 
 @app.route('/game/new', methods=['GET', 'POST'])
@@ -104,6 +111,7 @@ def new_game():
         seed = 37
 
         proto_game = ProtoGame(form.num_players.data, g.user)
+        app.logger.warn("proto_players is %s" % proto_game.proto_players)
         db.session.add(proto_game)
         db.session.commit()
         return redirect(url_for('show_proto_game',gid=proto_game.id))
@@ -111,3 +119,13 @@ def new_game():
         return render_template("new_game.html",form=form)
 
 
+
+@app.route('/fakelogin/<string:fakename>', methods=['GET'])
+def fake_login(fakename):
+    user = User.query.filter_by(email = fakename).first()
+    if user is None:
+        user = User(nickname = fakename, email = fakename)
+        db.session.add(user)
+        db.session.commit()
+    login_user(user, remember = False)
+    return redirect(url_for('list_games'))

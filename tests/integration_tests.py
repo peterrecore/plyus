@@ -13,7 +13,7 @@ from plyus.player import Player
 from plyus.gamestate import GameState
 from plyus.referee import Referee
 from simpleai import SimpleAIPlayer
-
+from plyus.util import from_json
 
 def create_session_maker():
     return db.create_scoped_session
@@ -93,7 +93,7 @@ class IntegrationTests(unittest.TestCase):
         cur_plyr = game.get_cur_plyr()
         cur_ai = ais[cur_plyr.name]
         json = ref.get_current_state_as_json_for_player(cur_plyr.position)
-        parsed_json = util.from_json(json)
+        parsed_json = from_json(json)
         move = cur_ai.decide_what_to_do_json(parsed_json)
         ref.perform_move(move)
         logging.info("After processing ai move, stage is %s ", game.stage)

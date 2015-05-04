@@ -2,3 +2,6 @@
 plyus.sublime-project
 plyus.sublime-workspace
 ./bin/*
+plyus.log
+tmp/
+.idea/

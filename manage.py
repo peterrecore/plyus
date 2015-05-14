@@ -18,6 +18,35 @@ def create_db():
 def run():
     plyus.app.run(debug=True)
 
+@manager.command
+def diagram():
+    from sqlalchemy import MetaData
+    from sqlalchemy_schemadisplay import create_uml_graph
+    from sqlalchemy_schemadisplay import create_schema_graph
+    from plyus import db
+
+    # Database
+    host     = 'localhost'
+    engine   = 'postgresql'
+    database = 'database'
+    username = 'username'
+    password = 'password'
+
+    # General
+    data_types = False
+    indexes    = False
+
+
+    # Generation
+    dsn = engine + '://' + username + ':' + password + '@' + host + '/' + database;
+
+
+#    graph = create_uml_graph(db.Model)
+    graph = create_schema_graph(metadata=db.Model.metadata)
+
+    graph.write_png('schema.png')
+
+
 
 if __name__ == "__main__":
     manager.run()

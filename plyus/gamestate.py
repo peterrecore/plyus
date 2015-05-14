@@ -41,6 +41,7 @@ class GameState(db.Model):
 
         self.players = [created_by]
         self.winner = None
+        self.cur_player_index = 0
 
     def add_player(self, player):
         if self.stage <> Stage.PRE_GAME:
@@ -60,7 +61,6 @@ class GameState(db.Model):
         if self.stage <> Stage.PRE_GAME:
             raise FatalPlyusError("Can't start game except from stage PRE_GAME  (in stage %s now)" % (self.stage,))
 
-        self.cur_player_index = 0
         rand_gen = self.get_random_gen()
         rand_gen.shuffle(self.players)
         rand_gen.shuffle(self.building_card_deck.cards)

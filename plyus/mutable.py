@@ -57,43 +57,6 @@ class MutableList(Mutable, list):
         list.remove(self, value)
         self.changed()
 
-
-class MutableDict(Mutable, dict):
-    @classmethod
-    def coerce(cls, key, value):
-        "Convert plain dictionaries to MutableDict."
-
-        if not isinstance(value, MutableDict):
-            if isinstance(value, dict):
-                return MutableDict(value)
-
-            # this call will raise ValueError
-            return Mutable.coerce(key, value)
-        else:
-            return value
-
-    def __setitem__(self, key, value):
-        "Detect dictionary set events and emit change events."
-
-        dict.__setitem__(self, key, value)
-        self.changed()
-
-    def __getitem__(self, key):
-        self.changed()
-        if key in self:
-            return dict.__getitem__(self, key)
-        s = str(key)
-        if s in self:
-            return dict.__getitem__(self, s)
-        raise KeyError("could not find %s even after trying conversion to str" % (key,))
-
-    def __delitem__(self, key):
-        "Detect dictionary del events and emit change events."
-
-        dict.__delitem__(self, key)
-        self.changed()
-
-
 class JSONEncoded(TypeDecorator):
     "Represents an immutable structure as a json-encoded string."
 

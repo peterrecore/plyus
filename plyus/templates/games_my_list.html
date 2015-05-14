@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Games In Progress</h1>
+    {% for game in games_in_progress %}
+        <p>{{ game.id }} <b>{{ game.real_game.stage }}</b></p>
+        <p>current player is {{game.real_game.cur_player_index}}</p>
+        {% for player in game.players %}
+            <p>{{ player.name }}</p>
+        {% endfor %}
+    {% endfor %}
+
+    <h1>Games Waiting to Start</h1>
+    {% for game in games_waiting %}
+        <p>{{ game.id }} <b>owner:{{ game.owner_id }}</b>
+        {% if game.can_user_start(g.user) %}
+            <a href="start">Start</a>
+        {% endif %}
+        </p>
+        {% for player in game.players %}
+            <p>{{ player.name }}</p>
+        {% endfor %}
+    {% endfor %}
+
+{% endblock %}

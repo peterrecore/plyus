@@ -78,10 +78,22 @@ def list_games():
     return render_template("games_list.html", games_in_template=games)
 
 
+@app.route('/games/my')
+@login_required
+def list_my_games():
+    waiting_statuses = (ProtoGame.WAITING_FOR_PLAYERS, ProtoGame.WAITING_TO_START)
+    waiting = ProtoGame.query.join(ProtoPlayer)\
+            .filter(ProtoPlayer.user_id == g.user.id)\
+            .filter(ProtoGame.status.in_(waiting_statuses))\
+            .all()
+    in_progress = ProtoGame.query.join(ProtoPlayer).filter(ProtoPlayer.user_id == g.user.id).filter(ProtoGame.status == ProtoGame.PLAYING).all()
+
+    return render_template("games_my_list.html",games_in_progress = in_progress, games_waiting = waiting)
+
 @app.route('/games/joinable')
 @login_required
 def list_games_joinable():
-    games = ProtoGame.query.filter_by(status=proto.WAITING_FOR_PLAYERS).all()
+    games = ProtoGame.query.filter_by(status=ProtoGame.WAITING_FOR_PLAYERS).all()
     return render_template("games_join.html", games=games)
 
 
@@ -125,11 +137,11 @@ def new_game():
         return render_template("new_game.html", form=form)
 
 
-@app.route('/fakelogin/<string:fakename>', methods=['GET'])
-def fake_login(fakename):
-    user = User.query.filter_by(email=fakename).first()
+@app.route('/fakelogin/<string:fake_name>', methods=['GET'])
+def fake_login(fake_name):
+    user = User.query.filter_by(email=fake_name).first()
     if user is None:
-        user = User(nickname=fakename, email=fakename)
+        user = User(nickname=fake_name, email=fake_name)
         db.session.add(user)
         db.session.commit()
     login_user(user, remember=False)

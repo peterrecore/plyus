@@ -5,11 +5,18 @@ from plyus.gamestate import GameState
 from plyus.player import Player
 from plyus.errors import FatalPlyusError
 
-WAITING_FOR_PLAYERS = 1
-WAITING_TO_START = 2
 
 
 class ProtoGame(db.Model):
+    WAITING_FOR_PLAYERS = 1
+    WAITING_TO_START = 2
+    PLAYING = 3
+    FINISHED = 4
+    _status_descriptions = {(WAITING_FOR_PLAYERS,"Waiting For Players"),
+                           (WAITING_TO_START, "Waiting To Start"),
+                           (FINISHED, "Finished"),
+                           (PLAYING, "In Progress")}
+
     __tablename__ = "proto_games"
     id = db.Column(db.Integer, primary_key=True)
 
@@ -25,7 +32,7 @@ class ProtoGame(db.Model):
         self.num_players = n
         pp = ProtoPlayer(owner)
         self.proto_players = [pp]
-        self.status = WAITING_FOR_PLAYERS
+        self.status = self.WAITING_FOR_PLAYERS
 
     def can_user_join(self, user):
         if self.is_full():
@@ -41,7 +48,7 @@ class ProtoGame(db.Model):
             pp = ProtoPlayer(user)
             self.proto_players.append(pp)
             if self.is_full():
-                self.status = WAITING_TO_START
+                self.status = self.WAITING_TO_START
             logging.info("user %s has been added as protoplayer %s to protogame %s", user, pp, self)
         else:
             logging.warn("user %s can't join protogame %s but was trying to.", user, self)
@@ -55,6 +62,9 @@ class ProtoGame(db.Model):
 
     def is_full(self):
         return len(self.proto_players) >= self.num_players
+
+    def get_status_desc(self):
+        return self._status_descriptions[self.status]
 
 
 class ProtoPlayer(db.Model):

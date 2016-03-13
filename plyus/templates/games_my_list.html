@@ -10,14 +10,14 @@
     {% endfor %}
 
     <h1>Games Waiting to Start</h1>
-    {% for game in games_waiting %}
-        <p>{{ game.id }} <b>owner:{{ game.owner_id }}</b>
-        {% if game.can_user_start(g.user) %}
+    {% for protogame in games_waiting %}
+        <p>Game ID:{{ protogame.id }} Joined So Far:{{protogame.num_joined_players()}} / {{protogame.num_players}} <b>owner:{{ protogame.owner_id }}</b>
+        {% if protogame.can_user_start(g.user) %}
             <a href="start">Start</a>
         {% endif %}
         </p>
-        {% for player in game.players %}
-            <p>{{ player.name }}</p>
+        {% for protoplayer in protogame.proto_players %}
+            <p>Player:{{ protoplayer.user.nickname }}</p>
         {% endfor %}
     {% endfor %}
 

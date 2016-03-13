@@ -2,12 +2,11 @@ from flask import flash, render_template, redirect, url_for, g, session, request
 from flask.ext.login import login_user, logout_user, current_user, login_required
 
 from plyus import app
-from plyus import db, lm, oid
+from plyus import lm, oid
 from plyus.user import User
 from plyus.gamestate import GameState
 from plyus.forms import LoginForm, NewGameForm
 from plyus.proto import *
-from plyus import proto
 # Login related functions
 
 @lm.user_loader

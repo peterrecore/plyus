@@ -56,7 +56,7 @@ class ProtoGame(db.Model):
 
 
     def can_user_start(self, user):
-        if self.is_full and user.id == self.owner_id:
+        if self.is_full() and user.id == self.owner_id:
             return True
         return False
 
@@ -65,6 +65,9 @@ class ProtoGame(db.Model):
 
     def get_status_desc(self):
         return self._status_descriptions[self.status]
+
+    def num_joined_players(self):
+        return len(self.proto_players)
 
 
 class ProtoPlayer(db.Model):

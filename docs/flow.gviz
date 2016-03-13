@@ -1,6 +1,6 @@
 digraph G {
 rankdir=LR;
-
+Start->GetStuff; 
 Build->Build [label="UsePower"];
 GetStuff->GetStuff [label="UsePower"];
 Finish->Finish [label="UsePower"];
@@ -8,4 +8,4 @@ GetStuff->Build [label="DrawCards"];
 GetStuff->Build [label="TakeCoins"];
 Build->Finish [label="Finish"];
 Build->Finish [label="Build"];
-} [sep="+50,50"]
+} //[sep="+50,50"];

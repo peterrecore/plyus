@@ -20,8 +20,6 @@ def run():
 
 @manager.command
 def diagram():
-    from sqlalchemy import MetaData
-    from sqlalchemy_schemadisplay import create_uml_graph
     from sqlalchemy_schemadisplay import create_schema_graph
     from plyus import db
 

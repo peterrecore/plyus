@@ -11,3 +11,7 @@ Random notes:
   the state of the random number generator, which probably looks confusing.
 
 - I want games to be persisted in a database, so games can be played over days or weeks.
+
+
+Running Unit Tests:
+python -m unittest tests.sqltests

@@ -3,7 +3,7 @@ import json
 import logging
 import plyus.util as util
 
-
+#Foo is just a fake class to use as a subject of the object_to_json method
 class Foo(object):
     def __init__(self, prop1, prop2, prop3):
         self.prop1 = prop1
@@ -51,7 +51,7 @@ class TestAllTheThings(unittest.TestCase):
         logging.debug("s ==> %s" % s)
         logging.debug("f ==> %s" % s)
         f_as_string = unicode(
-            '{"__class__": "Foo", "__module__": "test_util", "prop1": "peter", "prop2": "purple", "prop3": 23}')
+            '{"__class__": "Foo", "__module__": "tests.test_util", "prop1": "peter", "prop2": "purple", "prop3": 23}')
         self.assertEqual(s, f_as_string)
         f2 = util.from_json(s)
         for k in ['prop1', 'prop2', 'prop3']:

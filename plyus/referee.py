@@ -55,12 +55,13 @@ class Referee:
             raise e
 
         # verify that this action is legal
-        if action["name"] not in self.action_handlers:
-            raise NoSuchActionError(action["name"])
+        action_name = action["name"]
+        if action_name not in self.action_handlers:
+            raise NoSuchActionError(action_name)
 
         # perform the action
         cur_player = self.game_state.get_cur_plyr()
-        handler = self.action_handlers[action["name"]]
+        handler = self.action_handlers[action_name]
         handler(action, cur_player)
 
         #building an 8th building triggers the end of the game

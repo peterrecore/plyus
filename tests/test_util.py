@@ -46,25 +46,25 @@ class TestAllTheThings(unittest.TestCase):
         self.assertTrue(len(x) == 3)
 
     def test_object_to_json(self):
-        f = Foo(u"peter", u"purple", 23)
-        s = unicode(util.to_json(f))
+        f = Foo("peter", "purple", 23)
+        s = str(util.to_json(f))
         logging.debug("s ==> %s" % s)
         logging.debug("f ==> %s" % s)
-        f_as_string = unicode(
+        f_as_string = str(
             '{"__class__": "Foo", "__module__": "tests.test_util", "prop1": "peter", "prop2": "purple", "prop3": 23}')
         self.assertEqual(s, f_as_string)
         f2 = util.from_json(s)
         for k in ['prop1', 'prop2', 'prop3']:
-            self.assertEquals(f.__dict__[k], f2[k])
+            self.assertEqual(f.__dict__[k], f2[k])
 
     def test_flatten(self):
         xss = [[1], [2, 3], [], [4, 5, 6]]
         xs = util.flatten(xss)
-        self.assertEquals(xs, [1, 2, 3, 4, 5, 6])
+        self.assertEqual(xs, [1, 2, 3, 4, 5, 6])
 
         yss = [[1], [2, 3], [1]]
         ys = util.flatten(yss)
-        self.assertEquals(ys, [1, 2, 3, 1])
+        self.assertEqual(ys, [1, 2, 3, 1])
 
 
 if __name__ == '__main__':

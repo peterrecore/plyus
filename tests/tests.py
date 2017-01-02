@@ -13,7 +13,7 @@ from plyus.referee import Referee
 from plyus.round import Round
 from plyus.gamestate import GameState
 from plyus.misc import Stage, Building, BuildingDeck
-from simpleai import SimpleAIPlayer
+from .simpleai import SimpleAIPlayer
 
 
 class TestAllTheThings(unittest.TestCase):

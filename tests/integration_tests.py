@@ -12,7 +12,7 @@ from plyus.misc import *
 from plyus.player import Player
 from plyus.gamestate import GameState
 from plyus.referee import Referee
-from simpleai import SimpleAIPlayer
+from .simpleai import SimpleAIPlayer
 from plyus.util import from_json
 
 def create_session_maker():

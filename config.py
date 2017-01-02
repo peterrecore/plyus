@@ -9,7 +9,8 @@ global_config = {'CSRF_ENABLED': True,
                      {'name': 'Yahoo', 'url': 'https://me.yahoo.com'},
                      {'name': 'MyOpenID', 'url': 'https://www.myopenid.com'},
                  ],
-                 'TEMP_DIR': os.path.join(basedir, 'tmp')
+                 'TEMP_DIR': os.path.join(basedir, 'tmp'),
+                 'SQLALCHEMY_TRACK_MODIFICATIONS': False
 }
 
 test = {}

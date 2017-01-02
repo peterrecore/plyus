@@ -1,7 +1,7 @@
 import logging
 import json
 import itertools
-import errors
+from . import errors
 
 
 def draw_n(some_list, n):

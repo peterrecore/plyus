@@ -3,7 +3,7 @@ import json
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
-import util
+from . import util
 
 
 class MutableList(Mutable, list):

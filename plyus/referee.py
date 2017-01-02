@@ -1,10 +1,10 @@
 import logging
-import util
-from util import lowest_higher_than
+from . import util
+from .util import lowest_higher_than
 from plyus.misc import *
-from errors import NotYourTurnError
-from errors import IllegalActionError
-from errors import NoSuchActionError
+from .errors import NotYourTurnError
+from .errors import IllegalActionError
+from .errors import NoSuchActionError
 
 
 class Referee:

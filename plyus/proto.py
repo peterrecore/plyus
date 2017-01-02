@@ -12,7 +12,7 @@ class ProtoGame(db.Model):
     WAITING_TO_START = 2
     PLAYING = 3
     FINISHED = 4
-    _status_descriptions = {(WAITING_FOR_PLAYERS,"Waiting For Players"),
+    _status_descriptions = {(WAITING_FOR_PLAYERS, "Waiting For Players"),
                            (WAITING_TO_START, "Waiting To Start"),
                            (FINISHED, "Finished"),
                            (PLAYING, "In Progress")}

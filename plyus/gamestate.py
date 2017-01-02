@@ -1,7 +1,7 @@
 import logging
 import random
 
-import util
+from . import util
 from plyus.misc import *
 from plyus.round import Round
 from plyus import db
@@ -44,7 +44,7 @@ class GameState(db.Model):
         self.cur_player_index = 0
 
     def add_player(self, player):
-        if self.stage <> Stage.PRE_GAME:
+        if self.stage != Stage.PRE_GAME:
             raise FatalPlyusError("Can't add players except in stage PRE_GAME")
         if len(self.players) >= self.num_players:
             raise FatalPlyusError("Game already has %s players." % self.num_players)
@@ -58,7 +58,7 @@ class GameState(db.Model):
             logging.error("trying to start game %s with only %s players, but expecting %s players" % (
             self.id, len(self.players), self.num_players))
             raise FatalPlyusError("Not all players have joined yet")
-        if self.stage <> Stage.PRE_GAME:
+        if self.stage != Stage.PRE_GAME:
             raise FatalPlyusError("Can't start game except from stage PRE_GAME  (in stage %s now)" % (self.stage,))
 
         rand_gen = self.get_random_gen()

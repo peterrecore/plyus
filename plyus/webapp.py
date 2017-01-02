@@ -1,5 +1,5 @@
 from flask import flash, render_template, redirect, url_for, g, session, request
-from flask.ext.login import login_user, logout_user, current_user, login_required
+from flask_login import login_user, logout_user, current_user, login_required
 
 from plyus import app
 from plyus import lm, oid
@@ -87,7 +87,7 @@ def list_my_games():
             .all()
     in_progress = ProtoGame.query.join(ProtoPlayer).filter(ProtoPlayer.user_id == g.user.id).filter(ProtoGame.status == ProtoGame.PLAYING).all()
 
-    return render_template("games_my_list.html",games_in_progress = in_progress, games_waiting = waiting)
+    return render_template("games_my_list.html", games_in_progress = in_progress, games_waiting = waiting)
 
 @app.route('/games/joinable')
 @login_required

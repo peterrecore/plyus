@@ -56,7 +56,7 @@ class Building(object):
         return "Building(id=%s, %s, %s, %s, %s)" % (self.id, self.name, self.color, self.points, self.cost)
 
     def __eq__(self, other):
-        if type(self) is type(other):
+        if isinstance(other, type(self)):
             return self.id == other.id
 
 #Each game consists of several stages, progressing forward relentlessly

@@ -1,5 +1,5 @@
 import logging
-import util
+from . import util
 from plyus.mutable import MutableList
 from plyus.mutable import JSONEncoded
 from plyus.errors import FatalPlyusError

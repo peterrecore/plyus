@@ -16,3 +16,7 @@ Random notes:
 
 Running Unit Tests:
 python -m unittest tests.testsql
+
+*Versions:*
+- 0.5: all existing tests run, but web functionality not currently tested.  last version before conversion to python 3
+- 0.6: will upgrade to python 3 and latest version of flask and other libs.

@@ -19,7 +19,7 @@ from simpleai import SimpleAIPlayer
 class TestAllTheThings(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-    #        logging.basicConfig(level=logging.DEBUG)
+        #logging.basicConfig(level=logging.DEBUG)
         logging.basicConfig(level=logging.WARNING)
         logging.warning("Warning level set.")
 
@@ -99,11 +99,11 @@ class TestAllTheThings(unittest.TestCase):
         test_method = self.do_ai_test_with_json
         #test_method = self.do_ai_test
         for a in range(20):
-            #total_rounds += test_method(a, 2)
+            total_rounds += test_method(a, 2)
             total_rounds += test_method(a, 3)
-            # total_rounds += test_method(a, 4)
+            total_rounds += test_method(a, 4)
             total_rounds += test_method(a, 5)
-            # total_rounds += test_method(a, 6)
+            total_rounds += test_method(a, 6)
         logging.warning("total_rounds: %s" % total_rounds)
 
     def do_ai_test(self, seed, num_players):
@@ -182,8 +182,11 @@ class TestAllTheThings(unittest.TestCase):
                 logging.warning("******* Success, game over and %s won after %s rounds  ******" % (
                 json_game['winner'], json_game['round_num']))
                 json_players = json_game['players']
+
+                buffer = ""
                 for p in json_players:
-                    logging.warning("Player %s had %s pts" % (p['name'], p['points']))
+                    buffer += "Player %s had %s pts, " % (p['name'], p['points'])
+                logging.warning(buffer)
                 return json_game['round_num']
         logging.error("Didn't finish game in %s steps, ending test" % num_steps)
         self.assertTrue(False, "didn't finish game in right amount of steps")
